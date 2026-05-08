@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"projekat/model"
 )
 
@@ -13,10 +12,6 @@ func NewConfigService(repo model.ConfigRepository) ConfigService {
 	return ConfigService{
 		repo: repo,
 	}
-}
-
-func (s ConfigService) Hello() {
-	fmt.Println("hello from config service")
 }
 
 func (s ConfigService) Add(config model.Config) {

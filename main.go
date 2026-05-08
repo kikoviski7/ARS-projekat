@@ -13,6 +13,7 @@ import (
 func main() {
 	repo := repositories.NewConfigInMemRepository()
 	service := services.NewConfigService(repo)
+	groupService := services.NewConfigGroupService(repo, service)
 	config := model.Config{
 		Name:    "db_config",
 		Id:      "1",
@@ -22,8 +23,12 @@ func main() {
 			"password": "marejetata123",
 		},
 	}
+	// configGroup := model.ConfigGroup{
+
+	// }
 	service.Add(config)
 	handler := handlers.NewConfigHandler(service)
+	groupHandler := handlers.NewConfigGroupHandler(groupService)
 
 	router := mux.NewRouter()
 
@@ -31,6 +36,11 @@ func main() {
 	router.HandleFunc("/configs", handler.GetAll).Methods("GET")
 	router.HandleFunc("/configs/{name}/{version}", handler.Post).Methods("POST")
 	router.HandleFunc("/configs/{name}/{version}", handler.DeleteByVersion).Methods("DELETE")
+
+	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.GetGroup).Methods("GET")
+	router.HandleFunc("/configsGroup", groupHandler.GetAllGroups).Methods("GET")
+	router.HandleFunc("/configsGroups/{name}/{version}", groupHandler.PostGroup).Methods("POST")
+	router.HandleFunc("/configsGroups/{name}/{version}", groupHandler.DeleteGroupByVersion).Methods("DELETE")
 
 	http.ListenAndServe("0.0.0.0:8000", router)
 }

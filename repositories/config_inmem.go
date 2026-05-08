@@ -45,6 +45,14 @@ func (c ConfigInMemRepository) DeleteByVersion(name string, version int) (model.
 	return config, nil
 }
 
+func (c ConfigInMemRepository) AddGroup(configGroup model.ConfigGroup) {
+
+}
+
+func (c ConfigInMemRepository) DeleteGroupByVersion(name string, version int) (model.ConfigGroup, error) {
+	return model.ConfigGroup{}, nil
+}
+
 // func (c ConfigInMemRepository) DeleteByName(name string) (model.Config, error) {
 // 	delete(c.configs, name)
 // }

@@ -8,6 +8,12 @@ type Config struct {
 	Version int               `json: "version"`
 }
 
+type ConfigGroup struct {
+	Name    string   `json: "name"`
+	Configs []Config `json: "configs"`
+	Version int      `json: "version"`
+}
+
 // todo: dodati metode
 
 type ConfigRepository interface {
@@ -16,4 +22,6 @@ type ConfigRepository interface {
 	Get(name string, version int) (Config, error)
 	GetAll() (map[string]Config, error)
 	DeleteByVersion(name string, version int) (Config, error)
+	DeleteGroupByVersion(name string, version int) (ConfigGroup, error)
+	AddGroup(configGroup ConfigGroup)
 }
