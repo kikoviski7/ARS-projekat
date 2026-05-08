@@ -33,3 +33,18 @@ func (c ConfigInMemRepository) Get(name string, version int) (model.Config, erro
 	}
 	return config, nil
 }
+
+func (c ConfigInMemRepository) GetAll() (map[string]model.Config, error) {
+	return c.configs, nil
+}
+
+func (c ConfigInMemRepository) DeleteByVersion(name string, version int) (model.Config, error) {
+	key := fmt.Sprintf("%s/%d", name, version)
+	config := c.configs[key]
+	delete(c.configs, key)
+	return config, nil
+}
+
+// func (c ConfigInMemRepository) DeleteByName(name string) (model.Config, error) {
+// 	delete(c.configs, name)
+// }
