@@ -23,9 +23,7 @@ func main() {
 			"password": "marejetata123",
 		},
 	}
-	// configGroup := model.ConfigGroup{
 
-	// }
 	service.Add(config)
 	handler := handlers.NewConfigHandler(service)
 	groupHandler := handlers.NewConfigGroupHandler(groupService)

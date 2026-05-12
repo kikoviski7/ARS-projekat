@@ -73,7 +73,9 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 	// dobavi naziv i verziju
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
+
 	versionInt, err := strconv.Atoi(version)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -81,12 +83,15 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	// pozovi servis metodu
 	config, err := c.service.Get(name, versionInt)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
 	// vrati odgovor
 	resp, err := json.Marshal(config)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
