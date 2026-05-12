@@ -13,7 +13,7 @@ import (
 func main() {
 	repo := repositories.NewConfigInMemRepository()
 	service := services.NewConfigService(repo)
-	groupService := services.NewConfigGroupService(repo, service)
+	groupService := services.NewConfigGroupService(repo)
 	config := model.Config{
 		Name:    "db_config",
 		Id:      "1",
@@ -39,8 +39,9 @@ func main() {
 
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.GetGroup).Methods("GET")
 	router.HandleFunc("/configsGroup", groupHandler.GetAllGroups).Methods("GET")
-	router.HandleFunc("/configsGroups/{name}/{version}", groupHandler.PostGroup).Methods("POST")
-	router.HandleFunc("/configsGroups/{name}/{version}", groupHandler.DeleteGroupByVersion).Methods("DELETE")
+	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PostGroup).Methods("POST")
+	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.DeleteGroupByVersion).Methods("DELETE")
+	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PutGroup).Methods("PUT")
 
 	http.ListenAndServe("0.0.0.0:8000", router)
 }

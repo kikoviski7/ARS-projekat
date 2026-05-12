@@ -17,11 +17,32 @@ type ConfigGroup struct {
 // todo: dodati metode
 
 type ConfigRepository interface {
-	// todo: dodati metode
+
+	// =========================
+	// CONFIG METHODS
+	// =========================
+
 	Add(config Config)
+
 	Get(name string, version int) (Config, error)
+
 	GetAll() (map[string]Config, error)
+
 	DeleteByVersion(name string, version int) (Config, error)
-	DeleteGroupByVersion(name string, version int) (ConfigGroup, error)
+
+	// =========================
+	// CONFIG GROUP METHODS
+	// =========================
+
 	AddGroup(configGroup ConfigGroup)
+
+	GetGroup(name string, version int) (ConfigGroup, error)
+
+	GetAllGroups() (map[string]ConfigGroup, error)
+
+	DeleteGroupByVersion(name string, version int) (ConfigGroup, error)
+
+	UpdateGroup(group ConfigGroup) error
+
+	PutGroup(group ConfigGroup, oldName string, oldVersion int) error
 }

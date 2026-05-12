@@ -1,53 +1,105 @@
 package services
 
 import (
-	"fmt"
 	"projekat/model"
 )
 
 type ConfigGroupService struct {
-	repo          model.ConfigRepository
-	configService ConfigService
+	repo model.ConfigRepository
 }
 
-func NewConfigGroupService(repo model.ConfigRepository, service ConfigService) ConfigGroupService {
+func NewConfigGroupService(repo model.ConfigRepository) ConfigGroupService {
 	return ConfigGroupService{
-		repo:          repo,
-		configService: service,
+		repo: repo,
 	}
 }
 
-func (s ConfigGroupService) AddGroup(config model.Config) {
-	s.repo.Add(config)
+// READ ONE
+func (s ConfigGroupService) GetGroup(
+	name string,
+	version int,
+) (model.ConfigGroup, error) {
+
+	return s.repo.GetGroup(name, version)
 }
 
-func (s ConfigGroupService) GetGroup(name string, version int) (model.Config, error) {
-	return s.repo.Get(name, version)
+func (s ConfigGroupService) GetAllGroups() (
+	map[string]model.ConfigGroup,
+	error,
+) {
+
+	return s.repo.GetAllGroups()
 }
 
-func (s ConfigGroupService) GetAllGroups() (map[string]model.Config, error) {
-	return s.repo.GetAll()
-}
+func (s ConfigGroupService) PostGroup(
+	name string,
+	version int,
+	configs []model.Config,
+) error {
 
-func (s ConfigGroupService) PostGroup(name string, version int, params []map[string]any) error {
-	configs, _ := s.configService.GetAll()
-
-	data := make([]model.Config, 0)
-
-	for _, param := range params {
-		data = append(data, configs[fmt.Sprintf("%s/%d", param["name"], int(param["version"].(float64)))])
-	}
-
-	configGroup := model.ConfigGroup{
+	group := model.ConfigGroup{
 		Name:    name,
 		Version: version,
-		Configs: data,
+		Configs: configs,
 	}
-	s.repo.AddGroup(configGroup)
+
+	s.repo.AddGroup(group)
+
 	return nil
 }
 
-func (s ConfigGroupService) DeleteGroupByVersion(name string, version int) error {
-	s.repo.DeleteGroupByVersion(name, version)
-	return nil
+func (s ConfigGroupService) DeleteGroupByVersion(
+	name string,
+	version int,
+) error {
+
+	_, err := s.repo.DeleteGroupByVersion(name, version)
+
+	return err
+}
+
+func (s ConfigGroupService) DeleteConfigByVersion(
+	groupName string,
+	groupVersion int,
+	configName string,
+	configVersion int,
+) error {
+
+	group, err := s.repo.GetGroup(groupName, groupVersion)
+	if err != nil {
+		return err
+	}
+
+	newConfigs := []model.Config{}
+
+	for _, config := range group.Configs {
+
+		if !(config.Name == configName &&
+			config.Version == configVersion) {
+
+			newConfigs = append(newConfigs, config)
+		}
+	}
+
+	group.Configs = newConfigs
+
+	return s.repo.UpdateGroup(group)
+}
+
+func (s ConfigGroupService) PutGroup(
+	name string,
+	version int,
+	updatedGroup model.ConfigGroup,
+) error {
+
+	group, err := s.repo.GetGroup(name, version)
+	if err != nil {
+		return err
+	}
+
+	group.Name = updatedGroup.Name
+	group.Configs = updatedGroup.Configs
+	group.Version = updatedGroup.Version
+
+	return s.repo.UpdateGroup(group)
 }

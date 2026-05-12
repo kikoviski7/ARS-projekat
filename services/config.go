@@ -40,5 +40,3 @@ func (s ConfigService) DeleteByVerison(name string, version int) error {
 	s.repo.DeleteByVersion(name, version)
 	return nil
 }
-
-// todo: implementiraj metode za dodavanje, brisanje, dobavljanje itd.
