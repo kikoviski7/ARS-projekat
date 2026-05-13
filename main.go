@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"projekat/handlers"
 	"projekat/model"
 	"projekat/repositories"
 	"projekat/services"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -41,5 +46,26 @@ func main() {
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.DeleteGroupByVersion).Methods("DELETE")
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PutGroup).Methods("PUT")
 
-	http.ListenAndServe("0.0.0.0:8000", router)
+	server := &http.Server{
+		Addr:    "0.0.0.0:8000",
+		Handler: router,
+	}
+
+	go func() {
+		server.ListenAndServe()
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	<-stop
+
+	fmt.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	server.Shutdown(ctx)
+
+	fmt.Println("Server stopped")
 }
