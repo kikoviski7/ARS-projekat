@@ -47,7 +47,7 @@ func main() {
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PutGroup).Methods("PUT")
 
 	server := &http.Server{
-		Addr:    "0.0.0.0:8000",
+		Addr:    ":8000",
 		Handler: router,
 	}
 
