@@ -1,17 +1,17 @@
 package model
 
 type Config struct {
-	Name    string            `json: "name"`
-	Id      string            `json: "id"`
-	Params  map[string]string `json: "params"`
-	Version int               `json: "version"`
-	Labels  map[string]string `json: labels`
+    Name    string            `json:"name"`
+    Id      string            `json:"id"`
+    Params  map[string]string `json:"params"`
+    Version int               `json:"version"`
+    Labels  map[string]string `json:"labels"`
 }
 
 type ConfigGroup struct {
-	Name    string   `json: "name"`
-	Configs []Config `json: "configs"`
-	Version int      `json: "version"`
+    Name    string   `json:"name"`
+    Configs []Config `json:"configs"`
+    Version int      `json:"version"`
 }
 
 type ConfigRepository interface {
@@ -26,4 +26,7 @@ type ConfigRepository interface {
 	DeleteGroupByVersion(name string, version int) (ConfigGroup, error)
 	UpdateGroup(group ConfigGroup) error
 	PutGroup(group ConfigGroup, oldName string, oldVersion int) error
+
+	GetConfigsByLabels(name string, version int, labels map[string]string) ([]Config, error)
+	//DeleteConfigsByLabels(groupName string, groupVersion int, labels map[string]string) error
 }
