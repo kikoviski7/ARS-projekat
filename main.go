@@ -48,6 +48,7 @@ func main() {
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PutGroup).Methods("PUT")
 	
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.GetConfigsByLabels).Methods("GET")
+	router.HandleFunc("/configsGroup/{name}/{version}/search", configGroupHandler.DeleteConfigsByLabels).Methods("DELETE")
 
 	rateLimiter := middleware.NewRateLimiter(100, 10)
 	router.Use(rateLimiter.Middleware)

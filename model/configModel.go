@@ -28,5 +28,5 @@ type ConfigRepository interface {
 	PutGroup(group ConfigGroup, oldName string, oldVersion int) error
 
 	GetConfigsByLabels(name string, version int, labels map[string]string) ([]Config, error)
-	//DeleteConfigsByLabels(groupName string, groupVersion int, labels map[string]string) error
+	DeleteConfigsByLabels(name string, version int, labels map[string]string) error
 }
