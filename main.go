@@ -53,7 +53,7 @@ func main() {
 	router.Use(rateLimiter.Middleware)
 
 	server := &http.Server{
-		Addr:    "0.0.0.0:8000",
+		Addr:    ":8000",
 		Handler: router,
 	}
 
