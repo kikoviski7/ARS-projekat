@@ -161,25 +161,25 @@ func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http
 // PUT /groups/{name}/{version}
 func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 
-	name := mux.Vars(r)["name"]
+	groupName := mux.Vars(r)["name"]
 
 	version := mux.Vars(r)["version"]
-	versionInt, err := strconv.Atoi(version)
+	groupVersion, err := strconv.Atoi(version)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var updatedGroup model.ConfigGroup
+	var config model.Config
 
-	err = json.NewDecoder(r.Body).Decode(&updatedGroup)
+	err = json.NewDecoder(r.Body).Decode(&config)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = c.service.PutGroup(name, versionInt, updatedGroup)
+	err = c.service.PutGroup(config, groupName, groupVersion)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -5,6 +5,7 @@ type Config struct {
 	Id      string            `json: "id"`
 	Params  map[string]string `json: "params"`
 	Version int               `json: "version"`
+	Labels  map[string]string `json: labels`
 }
 
 type ConfigGroup struct {

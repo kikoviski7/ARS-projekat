@@ -86,20 +86,21 @@ func (s ConfigGroupService) DeleteConfigByVersion(
 	return s.repo.UpdateGroup(group)
 }
 
-func (s ConfigGroupService) PutGroup(
-	name string,
-	version int,
-	updatedGroup model.ConfigGroup,
-) error {
+func (s ConfigGroupService) PutGroup(config model.Config, groupName string, groupVersion int) error {
 
-	group, err := s.repo.GetGroup(name, version)
+	theConfig, err := s.repo.Get(config.Name, config.Version)
 	if err != nil {
 		return err
 	}
 
-	group.Name = updatedGroup.Name
-	group.Configs = updatedGroup.Configs
-	group.Version = updatedGroup.Version
+	theConfig.Labels = config.Labels
+
+	group, err := s.repo.GetGroup(groupName, groupVersion)
+	if err != nil {
+		return err
+	}
+
+	group.Configs = append(group.Configs, theConfig)
 
 	return s.repo.UpdateGroup(group)
 }

@@ -124,8 +124,9 @@ func (r *ConfigInMem) AddGroup(group model.ConfigGroup) {
 	r.groups[key] = group
 }
 
-func (r *ConfigInMem) UpdateGroup(
-	group model.ConfigGroup) error {
+// dodati ili u update group ili u put group sistem za tabele
+// labele se dodaju kada se konfiguracija dodaje u grupu
+func (r *ConfigInMem) UpdateGroup(group model.ConfigGroup) error {
 
 	key := group.Name + "_" + strconv.Itoa(group.Version)
 
