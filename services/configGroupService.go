@@ -43,6 +43,9 @@ func (s ConfigGroupService) PostGroup(
 		Configs: configs,
 	}
 
+	for _, config := range configs {
+		s.repo.Add(config)
+	}
 	s.repo.AddGroup(group)
 
 	return nil
@@ -106,9 +109,9 @@ func (s ConfigGroupService) PutGroup(config model.Config, groupName string, grou
 }
 
 func (s *ConfigGroupService) GetConfigsByLabels(name string, version int, labels map[string]string) ([]model.Config, error) {
-    return s.repo.GetConfigsByLabels(name, version, labels)
+	return s.repo.GetConfigsByLabels(name, version, labels)
 }
 
 func (s *ConfigGroupService) DeleteConfigsByLabels(name string, version int, labels map[string]string) error {
-    return s.repo.DeleteConfigsByLabels(name, version, labels)
+	return s.repo.DeleteConfigsByLabels(name, version, labels)
 }
