@@ -228,3 +228,34 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(resp)
 }
+
+// DELETE /configsGroup/{name}/{version}/search
+func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
+    name := mux.Vars(r)["name"]
+    version := mux.Vars(r)["version"]
+    versionInt, err := strconv.Atoi(version)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    labels := make(map[string]string)
+    for key, values := range r.URL.Query() {
+        if len(values) > 0 {
+            labels[key] = values[0]
+        }
+    }
+
+    if len(labels) == 0 {
+        http.Error(w, "no labels provided in query parameters", http.StatusBadRequest)
+        return
+    }
+
+    err = c.service.DeleteConfigsByLabels(name, versionInt, labels)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusNotFound)
+        return
+    }
+
+    w.WriteHeader(http.StatusNoContent)
+}

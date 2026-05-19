@@ -107,3 +107,7 @@ func (s ConfigGroupService) PutGroup(
 func (s *ConfigGroupService) GetConfigsByLabels(name string, version int, labels map[string]string) ([]model.Config, error) {
     return s.repo.GetConfigsByLabels(name, version, labels)
 }
+
+func (s *ConfigGroupService) DeleteConfigsByLabels(name string, version int, labels map[string]string) error {
+    return s.repo.DeleteConfigsByLabels(name, version, labels)
+}

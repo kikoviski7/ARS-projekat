@@ -174,6 +174,27 @@ func (r *ConfigInMem) GetConfigsByLabels(name string, version int, labels map[st
     return results, nil
 }
 
+func (r *ConfigInMem) DeleteConfigsByLabels(name string, version int, labels map[string]string) (error) {
+    group, err := r.GetGroup(name, version)
+    if err != nil {
+        return err
+    }
+
+    var remaining []model.Config
+    for _, config := range group.Configs {
+        if !matchesAllLabels(config.Labels, labels) {
+            remaining = append(remaining, config)
+        }
+    }
+
+    if len(remaining) == len(group.Configs) {
+        return fmt.Errorf("no configs found with labels: %v", labels)
+    }
+
+    group.Configs = remaining
+    return r.UpdateGroup(group)
+}
+
 func matchesAllLabels(configLabels map[string]string, searchLabels map[string]string) bool {
 	for key, value := range searchLabels {
 		if configLabels[key] != value {

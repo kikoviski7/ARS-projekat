@@ -47,6 +47,7 @@ func main() {
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PutGroup).Methods("PUT")
 	
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.GetConfigsByLabels).Methods("GET")
+	router.HandleFunc("/configsGroup/{name}/{version}/search", configGroupHandler.DeleteConfigsByLabels).Methods("DELETE")
 
 	server := &http.Server{
 		Addr:    "0.0.0.0:8000",
