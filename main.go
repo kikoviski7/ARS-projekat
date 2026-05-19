@@ -10,8 +10,9 @@ import (
 	"projekat/model"
 	"projekat/repositories"
 	"projekat/services"
+	"projekat/middleware"
 	"time"
-
+	
 	"github.com/gorilla/mux"
 )
 
@@ -47,6 +48,9 @@ func main() {
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PutGroup).Methods("PUT")
 	
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.GetConfigsByLabels).Methods("GET")
+
+	rateLimiter := middleware.NewRateLimiter(100, 10)
+	router.Use(rateLimiter.Middleware)
 
 	server := &http.Server{
 		Addr:    "0.0.0.0:8000",
