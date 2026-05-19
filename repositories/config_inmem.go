@@ -4,6 +4,7 @@ import (
 	"errors"
 	"projekat/model"
 	"strconv"
+	"fmt"
 )
 
 type ConfigInMem struct {
@@ -153,4 +154,31 @@ func (r *ConfigInMem) PutGroup(group model.ConfigGroup, oldName string, oldVersi
 	r.groups[newKey] = group
 
 	return nil
+}
+
+func (r *ConfigInMem) GetConfigsByLabels(name string, version int, labels map[string]string) ([]model.Config, error) {
+    group, err := r.GetGroup(name, version)
+    if err != nil {
+        return nil, err
+    }
+
+    var results []model.Config
+    for _, config := range group.Configs {
+        if matchesAllLabels(config.Labels, labels) {
+            results = append(results, config)
+        }
+    }
+    if len(results) == 0 {
+        return nil, fmt.Errorf("no config found with labels: %v", labels)
+    }
+    return results, nil
+}
+
+func matchesAllLabels(configLabels map[string]string, searchLabels map[string]string) bool {
+	for key, value := range searchLabels {
+		if configLabels[key] != value {
+			return false
+		}
+	}
+	return true
 }

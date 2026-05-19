@@ -103,3 +103,7 @@ func (s ConfigGroupService) PutGroup(
 
 	return s.repo.UpdateGroup(group)
 }
+
+func (s *ConfigGroupService) GetConfigsByLabels(name string, version int, labels map[string]string) ([]model.Config, error) {
+    return s.repo.GetConfigsByLabels(name, version, labels)
+}

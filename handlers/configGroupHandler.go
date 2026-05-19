@@ -187,3 +187,44 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+// GET /configsGroup/{name}/{version}/search
+func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
+
+	name := mux.Vars(r)["name"]
+	version := mux.Vars(r)["version"]
+	versionInt, err := strconv.Atoi(version)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Parse labels from query parameters (e.g., ?environment=production&team=backend)
+	labels := make(map[string]string)
+	for key, values := range r.URL.Query() {
+		if len(values) > 0 {
+			labels[key] = values[0]
+		}
+	}
+
+	if len(labels) == 0 {
+		http.Error(w, "no labels provided in query parameters", http.StatusBadRequest)
+		return
+	}
+
+	configs, err := c.service.GetConfigsByLabels(name, versionInt, labels)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	resp, err := json.Marshal(configs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(resp)
+}
