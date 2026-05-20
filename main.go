@@ -7,12 +7,12 @@ import (
 	"os"
 	"os/signal"
 	"projekat/handlers"
+	"projekat/middleware"
 	"projekat/model"
 	"projekat/repositories"
 	"projekat/services"
-	"projekat/middleware"
 	"time"
-	
+
 	"github.com/gorilla/mux"
 )
 
@@ -46,8 +46,9 @@ func main() {
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PostGroup).Methods("POST")
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.DeleteGroupByVersion).Methods("DELETE")
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PutGroup).Methods("PUT")
-	
+
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.GetConfigsByLabels).Methods("GET")
+	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.DeleteConfigsByLabels).Methods("DELETE")
 
 	rateLimiter := middleware.NewRateLimiter(100, 10)
 	router.Use(rateLimiter.Middleware)
