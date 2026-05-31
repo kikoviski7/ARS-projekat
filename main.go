@@ -44,12 +44,11 @@ func main() {
 		}
 	}()
 
-	repo := repositories.NewConfigInMemRepository()
-	service := services.NewConfigService(repo)
-	groupService := services.NewConfigGroupService(repo)
+	consulRepo := repositories.NewConfigConsulRepository()
+	service := services.NewConfigService(consulRepo)
+	groupService := services.NewConfigGroupService(consulRepo)
 	config := model.Config{
 		Name:    "db_config",
-		Id:      "1",
 		Version: 1,
 		Params: map[string]string{
 			"name":     "mare",

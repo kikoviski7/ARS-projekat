@@ -95,7 +95,7 @@ func (c ConfigHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	span.SetStatus(code.Ok, "all configs retrieved successfully")
 
-	w.Header().Set("Content−Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(resp)
 
 }
@@ -142,7 +142,7 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	span.SetStatus(code.Ok, "config retrieved successfully")
 
-	w.Header().Set("Content−Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(resp)
 }
 
