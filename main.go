@@ -14,9 +14,36 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/exporters/jaeger/otlp"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+
 )
 
 func main() {
+
+	tp, err := initTracer()
+	if err != nil{
+		fmt.Fprintf(os.Stderr, "Failed to initialize tracer: %v\n", err)
+		os.Exit(1)
+	}
+
+	otel.setTracerProvider(tp)
+
+	defer func(){
+		if err := tp.ForceFlush(context.Background()); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to flush tracer: %v\n", err)
+		}
+		if err := tp.Shutdown(context.Background()); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to shutdown tracer: %v\n", err)
+		}
+	}()
+
 	repo := repositories.NewConfigInMemRepository()
 	service := services.NewConfigService(repo)
 	groupService := services.NewConfigGroupService(repo)
@@ -35,6 +62,8 @@ func main() {
 	groupHandler := handlers.NewConfigGroupHandler(groupService)
 
 	router := mux.NewRouter()
+
+	router.Use(TracingMiddleware)
 
 	router.HandleFunc("/configs/{name}/{version}", handler.Get).Methods("GET")
 	router.HandleFunc("/configs", handler.GetAll).Methods("GET")
@@ -84,4 +113,32 @@ func main() {
 	server.Shutdown(ctx)
 
 	fmt.Println("Server stopped")
+}
+
+func initTracer() (*sdktrace.TracerProvider, error) {
+	exporter, err := jaeger.New(
+		jaeger.WithCollectorEndpoint(
+			jaeger.WithEndpoint("http://localhost:14268/api/traces"),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := resource.New(context.Background(),
+		resource.WithAttributes(
+			attribute.String("service.name", "config-service"),
+			attribute.String("service.version", "1.0.0"),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+	)
+
+	return tp, nil
 }
