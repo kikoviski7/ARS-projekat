@@ -59,9 +59,23 @@ func (c ConfigConsulRepository) Add(config model.Config) {
 	}
 }
 
-// AddGroup implements [model.ConfigRepository].
-func (c ConfigConsulRepository) AddGroup(configGroup model.ConfigGroup) {
-	panic("unimplemented")
+func (c ConfigConsulRepository) AddGroup(group model.ConfigGroup) {
+
+	data, err := json.Marshal(group)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	pair := &capi.KVPair{
+		Key:   groupKey(group.Name, group.Version),
+		Value: data,
+	}
+
+	_, err = c.kv.Put(pair, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (c ConfigConsulRepository) DeleteByVersion(name string, version int) (model.Config, error) {
@@ -82,14 +96,44 @@ func (c ConfigConsulRepository) DeleteByVersion(name string, version int) (model
 	return config, nil
 }
 
-// DeleteConfigsByLabels implements [model.ConfigRepository].
-func (c ConfigConsulRepository) DeleteConfigsByLabels(name string, version int, labels map[string]string) error {
-	panic("unimplemented")
+func (c ConfigConsulRepository) DeleteConfigsByLabels(
+	name string,
+	version int,
+	labels map[string]string,
+) error {
+
+	group, err := c.GetGroup(name, version)
+	if err != nil {
+		return err
+	}
+
+	newConfigs := []model.Config{}
+
+	for _, config := range group.Configs {
+		if !labelsMatch(config.Labels, labels) {
+			newConfigs = append(newConfigs, config)
+		}
+	}
+
+	group.Configs = newConfigs
+
+	return c.UpdateGroup(group)
 }
 
-// DeleteGroupByVersion implements [model.ConfigRepository].
 func (c ConfigConsulRepository) DeleteGroupByVersion(name string, version int) (model.ConfigGroup, error) {
-	panic("unimplemented")
+
+	group, err := c.GetGroup(name, version)
+	if err != nil {
+		fmt.Println("group not found")
+		return model.ConfigGroup{}, err
+	}
+
+	_, err = c.kv.Delete(groupKey(name, version), nil)
+	if err != nil {
+		return model.ConfigGroup{}, err
+	}
+
+	return group, nil
 }
 
 func (c ConfigConsulRepository) Get(name string, version int) (model.Config, error) {
@@ -146,27 +190,143 @@ func (c ConfigConsulRepository) GetAll() (map[string]model.Config, error) {
 	return configs, nil
 }
 
-// GetAllGroups implements [model.ConfigRepository].
 func (c ConfigConsulRepository) GetAllGroups() (map[string]model.ConfigGroup, error) {
-	panic("unimplemented")
+
+	pairs, _, err := c.kv.List(groupPrefix, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get groups: %w", err)
+	}
+
+	groups := make(map[string]model.ConfigGroup)
+
+	for _, pair := range pairs {
+
+		var group model.ConfigGroup
+
+		err := json.Unmarshal(pair.Value, &group)
+		if err != nil {
+			return nil, err
+		}
+
+		key := group.Name + "/" + strconv.Itoa(group.Version)
+
+		groups[key] = group
+	}
+
+	return groups, nil
 }
 
-// GetConfigsByLabels implements [model.ConfigRepository].
-func (c ConfigConsulRepository) GetConfigsByLabels(name string, version int, labels map[string]string) ([]model.Config, error) {
-	panic("unimplemented")
+func (c ConfigConsulRepository) GetConfigsByLabels(
+	name string,
+	version int,
+	labels map[string]string,
+) ([]model.Config, error) {
+
+	group, err := c.GetGroup(name, version)
+	if err != nil {
+		return nil, err
+	}
+
+	configs := []model.Config{}
+
+	for _, config := range group.Configs {
+		if labelsMatch(config.Labels, labels) {
+			configs = append(configs, config)
+		}
+	}
+
+	return configs, nil
 }
 
-// GetGroup implements [model.ConfigRepository].
 func (c ConfigConsulRepository) GetGroup(name string, version int) (model.ConfigGroup, error) {
-	panic("unimplemented")
+
+	pair, _, err := c.kv.Get(groupKey(name, version), nil)
+	if err != nil {
+		return model.ConfigGroup{}, fmt.Errorf("failed to get group: %w", err)
+	}
+
+	if pair == nil {
+		return model.ConfigGroup{}, fmt.Errorf("group not found")
+	}
+
+	var group model.ConfigGroup
+
+	err = json.Unmarshal(pair.Value, &group)
+	if err != nil {
+		return model.ConfigGroup{}, err
+	}
+
+	return group, nil
 }
 
-// PutGroup implements [model.ConfigRepository].
 func (c ConfigConsulRepository) PutGroup(group model.ConfigGroup, oldName string, oldVersion int) error {
-	panic("unimplemented")
+
+	oldKey := groupKey(oldName, oldVersion)
+	newKey := groupKey(group.Name, group.Version)
+
+	data, err := json.Marshal(group)
+	if err != nil {
+		return err
+	}
+
+	pair := &capi.KVPair{
+		Key:   newKey,
+		Value: data,
+	}
+
+	_, err = c.kv.Put(pair, nil)
+	if err != nil {
+		return err
+	}
+
+	if oldKey != newKey {
+		_, err = c.kv.Delete(oldKey, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+func (c ConfigConsulRepository) UpdateGroup(group model.ConfigGroup) error {
+
+	data, err := json.Marshal(group)
+	if err != nil {
+		return err
+	}
+
+	pair := &capi.KVPair{
+		Key:   groupKey(group.Name, group.Version),
+		Value: data,
+	}
+
+	_, err = c.kv.Put(pair, nil)
+
+	return err
 }
 
-// UpdateGroup implements [model.ConfigRepository].
-func (c ConfigConsulRepository) UpdateGroup(group model.ConfigGroup) error {
-	panic("unimplemented")
+//***************************************************************
+//HELPER FUNCTION
+//***************************************************************
+
+func configKey(name string, version int) string {
+	return configPrefix + name + "/" + strconv.Itoa(version)
+}
+
+func groupKey(name string, version int) string {
+	return groupPrefix + name + "/" + strconv.Itoa(version)
+}
+
+func groupPrefixKey(name string, version int) string {
+	return groupKey(name, version) + "/"
+}
+
+func labelsMatch(configLabels map[string]string, searchLabels map[string]string) bool {
+	for key, value := range searchLabels {
+		if configLabels[key] != value {
+			return false
+		}
+	}
+
+	return true
 }

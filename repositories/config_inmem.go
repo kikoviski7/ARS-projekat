@@ -2,9 +2,9 @@ package repositories
 
 import (
 	"errors"
+	"fmt"
 	"projekat/model"
 	"strconv"
-	"fmt"
 )
 
 type ConfigInMem struct {
@@ -129,20 +129,24 @@ func (r *ConfigInMem) AddGroup(group model.ConfigGroup) {
 // labele se dodaju kada se konfiguracija dodaje u grupu
 func (r *ConfigInMem) UpdateGroup(group model.ConfigGroup) error {
 
+	//pravi key
 	key := group.Name + "_" + strconv.Itoa(group.Version)
 
+	//da li grupa postoji u listi grupa
 	_, exists := r.groups[key]
 
 	if !exists {
 		return errors.New("group not found")
 	}
 
+	//ako postoji, pod kljucem stavi grupu
 	r.groups[key] = group
 
 	return nil
 }
 
 func (r *ConfigInMem) PutGroup(group model.ConfigGroup, oldName string, oldVersion int) error {
+
 	key := oldName + "_" + strconv.Itoa(oldVersion)
 
 	_, exists := r.groups[key]
@@ -158,42 +162,42 @@ func (r *ConfigInMem) PutGroup(group model.ConfigGroup, oldName string, oldVersi
 }
 
 func (r *ConfigInMem) GetConfigsByLabels(name string, version int, labels map[string]string) ([]model.Config, error) {
-    group, err := r.GetGroup(name, version)
-    if err != nil {
-        return nil, err
-    }
+	group, err := r.GetGroup(name, version)
+	if err != nil {
+		return nil, err
+	}
 
-    var results []model.Config
-    for _, config := range group.Configs {
-        if matchesAllLabels(config.Labels, labels) {
-            results = append(results, config)
-        }
-    }
-    if len(results) == 0 {
-        return nil, fmt.Errorf("no config found with labels: %v", labels)
-    }
-    return results, nil
+	var results []model.Config
+	for _, config := range group.Configs {
+		if matchesAllLabels(config.Labels, labels) {
+			results = append(results, config)
+		}
+	}
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no config found with labels: %v", labels)
+	}
+	return results, nil
 }
 
-func (r *ConfigInMem) DeleteConfigsByLabels(name string, version int, labels map[string]string) (error) {
-    group, err := r.GetGroup(name, version)
-    if err != nil {
-        return err
-    }
+func (r *ConfigInMem) DeleteConfigsByLabels(name string, version int, labels map[string]string) error {
+	group, err := r.GetGroup(name, version)
+	if err != nil {
+		return err
+	}
 
-    var remaining []model.Config
-    for _, config := range group.Configs {
-        if !matchesAllLabels(config.Labels, labels) {
-            remaining = append(remaining, config)
-        }
-    }
+	var remaining []model.Config
+	for _, config := range group.Configs {
+		if !matchesAllLabels(config.Labels, labels) {
+			remaining = append(remaining, config)
+		}
+	}
 
-    if len(remaining) == len(group.Configs) {
-        return fmt.Errorf("no configs found with labels: %v", labels)
-    }
+	if len(remaining) == len(group.Configs) {
+		return fmt.Errorf("no configs found with labels: %v", labels)
+	}
 
-    group.Configs = remaining
-    return r.UpdateGroup(group)
+	group.Configs = remaining
+	return r.UpdateGroup(group)
 }
 
 func matchesAllLabels(configLabels map[string]string, searchLabels map[string]string) bool {
