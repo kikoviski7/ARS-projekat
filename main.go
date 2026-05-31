@@ -50,12 +50,21 @@ func main() {
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.GetConfigsByLabels).Methods("GET")
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.DeleteConfigsByLabels).Methods("DELETE")
 
+	router.HandleFunc("/metrics", handlers.GetMetrics)
+	router.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hello"))
+	})
+
+	http.Handle("/metrics", http.HandlerFunc(handlers.GetMetrics))
+
 	rateLimiter := middleware.NewRateLimiter(100, 10)
 	router.Use(rateLimiter.Middleware)
 
+	metricsHandler := middleware.MetricsMiddleware(router)
+
 	server := &http.Server{
 		Addr:    ":8000",
-		Handler: router,
+		Handler: metricsHandler,
 	}
 
 	go func() {
