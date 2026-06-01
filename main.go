@@ -25,7 +25,6 @@ import (
 )
 
 func main() {
-<<<<<<< HEAD
 
 	tp, err := initTracer()
 	if err != nil {
@@ -48,13 +47,6 @@ func main() {
 
 	service := services.NewConfigService(consulRepo)
 	groupService := services.NewConfigGroupService(consulRepo)
-
-=======
-	// repo := repositories.NewConfigInMemRepository()
-	consulRepo := repositories.NewConfigConsulRepository()
-	service := services.NewConfigService(consulRepo)
-	groupService := services.NewConfigGroupService(consulRepo)
->>>>>>> feature/consul
 	handler := handlers.NewConfigHandler(service)
 	groupHandler := handlers.NewConfigGroupHandler(groupService)
 

@@ -23,44 +23,96 @@ Sistem je REST API koji je napisan u Golang 1.25, podaci o konfiguracijama i gru
 -> Terminal komanda u root folderu: "docker compose up --build"
 -> API servisu se pristupa putem "http://localhost:8000/"
 -> Consul bazi podataka se pristupa putem "http://localhost:8500/"
+-> Jaeger Tracing servisu se pristupa putem "http://localhost:16686"
+
+# Docker
+
+Sastoji se od tri kontejnera, jedan za Go API servis, drugi za Consul bazu podataka, treći za Jaeger Tracing servis. Go API kontejner je build-ovan u multi-stage, gde prvi stage sadrži celokupan Go jezik, compiler, biblioteke i alate, a drugi stage samo pokreće binary executable file koji Go compiler pravi, stoga koristi mnogo manje resursa. Sistem je orkestriran putem docker-compose alata, gde se Consul kontejner pokreće prvi, Jaeger kontejner drugi, a Go API kontejner treći, i tako uspostavljaju mrežu i redosled zavisnosti.
 
 # API endpoints (http://localhost:8000/)
 
 - Konfiguracije:
 
-- GET "/configs" -> dobavlja sve konfiguracije u sistemu
-- GET "/configs/{name}/{version}" -> dobavlja jednu konfiguraciju, po nazivu i verziji
-- POST "/configs" -> kreira novu konfiguraciju
-- PUT "/configs/{name}/{version}" -> menja postojeću konfiguraciju, po nazivu i verziji (imutabilno, celokupna zamena)
-- DELETE "/configs/{name}/{version}" -> briše postojeću konfiguraciju, po nazivu i verziji
+  - GET all configs -> dobavlja sve konfiguracije u sistemu
+    - Request: GET "/configs"
+    - Response 200: vraća JSON sa svim konfiguracijama
+    - Response 5xx: vraća grešku da server ne odgovara
+
+  - GET config by name -> vraća sve verzije jedne konfiguracije
+    - Request: GET "/configs/{configName}"
+    - Response 200: vraća JSON sa svim verzijama konfiguracije pod nazivom {configName}
+    - Response 404: vraća grešku, konfiguracije nisu pronađene
+
+  - GET config by name and version -> vraća konfiguraciju sa tim {configName} i tim {configVersion}
+    - Request: GET "/configs/{configName}/{configVersion}"
+    - Response 200: vraća JSON sa konfiguracijom pod nazivom {configName} i verzijom {configVersion}
+    - Response 404: vraća grešku, konfiguracija nije pronađena
+
+  - POST add config -> kreira konfiguraciju sa zadatim nazivom i verzijom
+    - Request: POST "/configs/{configName}/{configVersion}"
+      - Body: očekuje proizvoljan broj parametara
+        - {
+            params: {
+              "key1": "value1"
+              "key2": "value2"
+            }
+          }
+    - Response 201: vraća potvrdu da je konfiguracija kreirana
+    - Response 409: vraća poruku da konfiguracija već postoji pod tim nazivom i verzijom
+
+  - PUT edit config -> menja konfiguraciju pod tim nazivom i verzijom
+    - Request: POST "/configs/{configName}/{configVersion}"
+      - Body: očekuje celu novu konfiguraciju sa izmenama
+    - Response 200: vraća potvrdu da je izmena uspešna
+    - Response 404: vraća grešku, konfiguracija nije pronađena
+
+  - DELETE config -> briše konfiguraciju pod tim nazivom i verzijom
+    - Request: DELETE "/configs/{configName}/{configVersion}"
+    - Response 204: vraća potvrdu da je konfiguracija obrisana
+    - Response 404: vraća grešku, konfiguracija nije pronađena
 
 - Konfiguracione grupe:
 
-- TODO
+  - GET all groups -> dobavlja sve grupe u sistemu sa njihovim konfiguracijama
+    - Request: GET "/configsGroup"
+    - Response 200: vraća JSON sa svim grupama i svim konfiguracijama u tim grupama
+    - Response 5xx: vraća grešku da server ne odgovara
 
-# Request forme primeri
+  - GET group by name and version -> vraća grupu pod tim nazivom i tom verzijom i konfiguracije u toj grupi
+    - Request: GET "/configsGroup/{groupName}/{groupVersion}"
+    - Response 200: vraća JSON sa grupom pod tim nazivom i tom verzijom i listom konfiguracija
+    - Response 404: vraća grešku, grupa nije pronađena
 
-- POST "/configs" body:
+  - POST add one group -> kreira novu grupu sa tim nazivom i tom verzijom
+    - Request: POST "/configsGroup/{groupName}/{groupVersion}"
+    - Response 201: vraća potvrdu da je grupa kreirana
+    - Response 409: vraća poruku da grupa već postoji pod tim nazivom i verzijom
 
-// TODO
+  - PUT add config to group -> dodaje postojeću konfiguraciju sa tim nazivom i verzijom u grupu sa svojim nazivom i verzijom
+    - Request: PUT "/configsGroup/{groupName}/{groupVersion}"
+      - Body: očekuje JSON sa postojećom konfiguracijom i JSON listom labela
+        - {
+            "name": "naziv",
+            "version": integer,
+            "labels": {
+              "label1": "value1",
+              "label2": "value2"
+            }
+        }
+    - Response 200: vraća potvrdu da je dodavanje uspešno
+    - Response 404: vraća grešku, grupa nije pronađena ili konfiguracija nije pronađena
+  
+  - GET all configs in group by labels -> dobavlja sve konfiguracije u datoj grupi prema navedenim labelama
+    - Request: GET "/configsGroup/{groupName}/{groupVersion}/label1=value1|label2=value2"
+    - Response 200: vraća JSON sa svim konfiguracijama u toj grupi koje imaju tačno sve navedene labele
+    - Response 404: vraća grešku, grupa nije pronađena
 
-# Response forme primeri
+  - DELETE remove config from group by labels -> briše sve konfiguracije u datoj grupi prema navedenim labelama
+    - Request: DELETE "/configsGroup/{groupName}/{groupVersion}/label1=value1|label2=value2"
+    - Response 204: vraća potvrdu da su konfiguracije obrisane
+    - Response 404: vraća grešku, grupa nije pronađena
 
-// TODO
-
-# Response code značenja
-
-200: uspešno dobavljeni podaci
-201: uspešno kreiran entitet
-204: uspešno obrisan entitet
-
-404: nisu pronađeni podaci
-429: preopterećenje sistema brojem zahteva u sekundi
-
-5xx: interna greška u serveru
-
-# Docker
-
-Sastoji se od dva kontejnera, jedan za Go API servis, drugi za Consul bazu podataka. Go API kontejner je build-ovan u multi-stage, gde prvi stage sadrži celokupan Go jezik, compiler, biblioteke i alate, a drugi stage samo pokreće binary executable file koji Go compiler pravi, stoga koristi mnogo manje resursa. Sistem je orkestriran putem docker-compose alata, gde se Consul kontejner pokreće prvi, a Go API kontejner drugi, i komuniciraju u mreži 
-
-// TODO
+  - DELETE one group by name and version -> briše grupu pod tim nazivom i verzijom
+    - Request: DELETE "/configsGroup/{groupName}/{groupVersion}"
+    - Response 204: vraća potvrdu da je grupa obrisana
+    - Response 404: vraća grešku, grupa nije pronađena
