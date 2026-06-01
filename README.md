@@ -36,7 +36,7 @@ Sastoji se od tri kontejnera, jedan za Go API servis, drugi za Consul bazu podat
   - GET all configs -> dobavlja sve konfiguracije u sistemu
     - Request: GET "/configs"
     - Response 200: vraća JSON sa svim konfiguracijama
-    - Response 5xx: vraća grešku da server ne odgovara
+    - Response 500: vraća grešku da server ne odgovara
 
   - GET config by name -> vraća sve verzije jedne konfiguracije
     - Request: GET "/configs/{configName}"
@@ -116,3 +116,10 @@ Sastoji se od tri kontejnera, jedan za Go API servis, drugi za Consul bazu podat
     - Request: DELETE "/configsGroup/{groupName}/{groupVersion}"
     - Response 204: vraća potvrdu da je grupa obrisana
     - Response 404: vraća grešku, grupa nije pronađena
+
+- Metrike:
+
+  - GET metrics -> dobavlja podatke o metrikama servisa
+    - Request: GET "/metrics"
+    - Response 200: vraća JSON sa podacima o praćenim metrikama
+    - Response 500: vraća grešku da server ne odgovara
