@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Config struct {
+	ID             uuid.UUID         `json:"id"`
 	Name           string            `json:"name"`
 	Params         map[string]string `json:"params"`
 	Version        int               `json:"version"`
@@ -15,10 +18,11 @@ type Config struct {
 }
 
 type ConfigGroup struct {
-	Name           string   `json:"name"`
-	Configs        []Config `json:"configs"`
-	Version        int      `json:"version"`
-	IdempotencyKey string   `json:"-"`
+	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
+	Configs        []Config  `json:"configs"`
+	Version        int       `json:"version"`
+	IdempotencyKey string    `json:"-"`
 }
 
 type ConfigRepository interface {
@@ -29,6 +33,9 @@ type ConfigRepository interface {
 	Get(ctx context.Context, name string, version int) (Config, error)
 	GetAll(ctx context.Context) (map[string]Config, error)
 	DeleteByVersion(ctx context.Context, name string, version int) (Config, error)
+
+	Put(config Config, oldName string, oldVersion int) error
+	GetByName(name string) ([]Config, error)
 
 	AddGroup(ctx context.Context, configGroup ConfigGroup) error
 	GetGroup(ctx context.Context, name string, version int) (ConfigGroup, error)

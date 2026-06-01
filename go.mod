@@ -5,6 +5,7 @@ go 1.25.0
 require github.com/gorilla/mux v1.8.1
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/consul/api v1.27.0
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.44.0

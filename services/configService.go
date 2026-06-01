@@ -88,6 +88,18 @@ func (s *ConfigService) GetAll(ctx context.Context) (map[string]model.Config, er
 	return configs, nil
 }
 
+func (s *ConfigService) GetByName(name string) ([]model.Config, error) {
+	return s.repo.GetByName(name)
+}
+
+func (s ConfigService) Put(
+	config model.Config,
+	oldName string,
+	oldVersion int,
+) error {
+	return s.repo.Put(config, oldName, oldVersion)
+}
+
 func (s *ConfigService) Post(ctx context.Context, name string, version int, params map[string]string, idempotencyKey string) error {
 	ctx, span := s.tracer.Start(ctx, "ConfigService.Post")
 	defer span.End()

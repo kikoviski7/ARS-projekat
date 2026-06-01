@@ -31,17 +31,17 @@ func NewConfigInMemRepository() *ConfigInMem {
 // ======================================================
 
 func (r *ConfigInMem) Add(ctx context.Context, config model.Config) error {
-    _, span := tracer.Start(ctx, "ConfigRepo.Add")
-    defer span.End()
+	_, span := tracer.Start(ctx, "ConfigRepo.Add")
+	defer span.End()
 
-    span.SetAttributes(
-        attribute.String("config.name", config.Name),
-        attribute.Int("config.version", config.Version),
-    )
+	span.SetAttributes(
+		attribute.String("config.name", config.Name),
+		attribute.Int("config.version", config.Version),
+	)
 
-    key := config.Name + "_" + strconv.Itoa(config.Version)
-    r.configs[key] = config
-    return nil
+	key := config.Name + "_" + strconv.Itoa(config.Version)
+	r.configs[key] = config
+	return nil
 }
 
 func (r *ConfigInMem) Get(ctx context.Context, name string, version int) (model.Config, error) {
@@ -153,17 +153,17 @@ func (r *ConfigInMem) DeleteGroupByVersion(ctx context.Context, name string, ver
 }
 
 func (r *ConfigInMem) AddGroup(ctx context.Context, group model.ConfigGroup) error {
-    _, span := tracer.Start(ctx, "ConfigRepo.AddGroup")
-    defer span.End()
+	_, span := tracer.Start(ctx, "ConfigRepo.AddGroup")
+	defer span.End()
 
-    span.SetAttributes(
-        attribute.String("group.name", group.Name),
-        attribute.Int("group.version", group.Version),
-    )
+	span.SetAttributes(
+		attribute.String("group.name", group.Name),
+		attribute.Int("group.version", group.Version),
+	)
 
-    key := group.Name + "_" + strconv.Itoa(group.Version)
-    r.groups[key] = group
-    return nil
+	key := group.Name + "_" + strconv.Itoa(group.Version)
+	r.groups[key] = group
+	return nil
 }
 
 func (r *ConfigInMem) UpdateGroup(ctx context.Context, group model.ConfigGroup) error {
