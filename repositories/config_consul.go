@@ -225,11 +225,23 @@ func (c ConfigConsulRepository) GetAll() (map[string]model.Config, error) {
 
 	for _, pair := range pairs {
 
+		parts := strings.Split(pair.Key, "/")
+
+		// We only want standalone config keys:
+		// config/{configName}/{configVersion}
+		if len(parts) != 3 {
+			continue
+		}
+
+		if parts[0] != "config" {
+			continue
+		}
+
 		var config model.Config
 
 		err := json.Unmarshal(pair.Value, &config)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 		}
 
 		key := config.Name + "/" + strconv.Itoa(config.Version)
@@ -251,14 +263,9 @@ func (c ConfigConsulRepository) GetAllGroups() (map[string]model.ConfigGroup, er
 
 	for _, pair := range pairs {
 
-		// group metadata keys look like:
-		// group/backend/1
-		//
-		// grouped config keys look like:
-		// group/backend/1/env=prod/config/db/1
-		//
-		// So we only want keys with exactly 3 parts.
 		parts := strings.Split(pair.Key, "/")
+
+		//groupPart/labelPart/configPart
 		if len(parts) != 3 {
 			continue
 		}
@@ -270,7 +277,12 @@ func (c ConfigConsulRepository) GetAllGroups() (map[string]model.ConfigGroup, er
 			return nil, fmt.Errorf("failed to unmarshal group: %w", err)
 		}
 
-		group.Configs = nil
+		configs, err := c.getConfigsForGroup(group.Name, group.Version)
+		if err != nil {
+			return nil, err
+		}
+
+		group.Configs = configs
 
 		key := group.Name + "/" + strconv.Itoa(group.Version)
 
@@ -332,7 +344,12 @@ func (c ConfigConsulRepository) GetGroup(name string, version int) (model.Config
 		return model.ConfigGroup{}, fmt.Errorf("failed to unmarshal group: %w", err)
 	}
 
-	group.Configs = nil
+	configs, err := c.getConfigsForGroup(name, version)
+	if err != nil {
+		return model.ConfigGroup{}, err
+	}
+
+	group.Configs = configs
 
 	return group, nil
 }
@@ -504,7 +521,9 @@ func groupConfigKey(
 		"/" +
 		buildLabelsKey(config.Labels) +
 		"/" +
-		configKey(config.Name, config.Version)
+		config.Name +
+		"/" +
+		strconv.Itoa(config.Version)
 }
 
 func groupConfigPrefix(
@@ -515,6 +534,31 @@ func groupConfigPrefix(
 	return groupKey(groupName, groupVersion) +
 		"/" +
 		buildLabelsKey(labels) +
-		"/" +
-		configPrefix
+		"/"
+}
+
+func (c ConfigConsulRepository) getConfigsForGroup(
+	name string,
+	version int,
+) ([]model.Config, error) {
+
+	pairs, _, err := c.kv.List(groupPrefixKey(name, version), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configs for group from consul: %w", err)
+	}
+
+	configs := make([]model.Config, 0)
+
+	for _, pair := range pairs {
+		var config model.Config
+
+		err := json.Unmarshal(pair.Value, &config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal grouped config: %w", err)
+		}
+
+		configs = append(configs, config)
+	}
+
+	return configs, nil
 }
