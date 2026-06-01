@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"projekat/handlers"
 	"projekat/middleware"
-	"projekat/model"
 	"projekat/repositories"
 	"projekat/services"
 	"time"
@@ -17,12 +16,11 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/exporters/jaeger/otlp"
-	"go.opentelemetry.io/otel/exporters/jaeger"
-
+	//"go.opentelemetry.io/otel/exporters/jaeger/otlp"
+	//"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 )
 
 func main() {
@@ -33,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	otel.setTracerProvider(tp)
+	otel.SetTracerProvider(tp)
 
 	defer func(){
 		if err := tp.ForceFlush(context.Background()); err != nil {
@@ -47,22 +45,13 @@ func main() {
 	consulRepo := repositories.NewConfigConsulRepository()
 	service := services.NewConfigService(consulRepo)
 	groupService := services.NewConfigGroupService(consulRepo)
-	config := model.Config{
-		Name:    "db_config",
-		Version: 1,
-		Params: map[string]string{
-			"name":     "mare",
-			"password": "marejetata123",
-		},
-	}
-
-	service.Add(config)
+	
 	handler := handlers.NewConfigHandler(service)
 	groupHandler := handlers.NewConfigGroupHandler(groupService)
 
 	router := mux.NewRouter()
 
-	router.Use(TracingMiddleware)
+	router.Use(middleware.TracingMiddleware)
 
 	router.HandleFunc("/configs/{name}/{version}", handler.Get).Methods("GET")
 	router.HandleFunc("/configs", handler.GetAll).Methods("GET")
@@ -115,11 +104,19 @@ func main() {
 }
 
 func initTracer() (*sdktrace.TracerProvider, error) {
-	exporter, err := jaeger.New(
-		jaeger.WithCollectorEndpoint(
-			jaeger.WithEndpoint("http://localhost:14268/api/traces"),
-		),
+
+	ctx := context.Background()
+
+	exporter, err := otlptracegrpc.New(ctx,
+    	otlptracegrpc.WithEndpoint("jaeger:4317"),
+    	otlptracegrpc.WithInsecure(),
 	)
+	
+	/*exporter, err := jaeger.New(
+		jaeger.WithCollectorEndpoint(
+			jaeger.WithEndpoint(os.Getenv("JAEGER_ENDPOINT")+"/api/traces"),
+		),
+	)*/
 	if err != nil {
 		return nil, err
 	}

@@ -1,5 +1,7 @@
 package model
 
+import "context"
+
 type Config struct {
 	Name    string            `json:"name"`
 	Params  map[string]string `json:"params"`
@@ -14,18 +16,18 @@ type ConfigGroup struct {
 }
 
 type ConfigRepository interface {
-	Add(config Config)
-	Get(name string, version int) (Config, error)
-	GetAll() (map[string]Config, error)
-	DeleteByVersion(name string, version int) (Config, error)
+	Add(ctx context.Context, config Config) error
+	Get(ctx context.Context, name string, version int) (Config, error)
+	GetAll(ctx context.Context) (map[string]Config, error)
+	DeleteByVersion(ctx context.Context, name string, version int) (Config, error)
 
-	AddGroup(configGroup ConfigGroup)
-	GetGroup(name string, version int) (ConfigGroup, error)
-	GetAllGroups() (map[string]ConfigGroup, error)
-	DeleteGroupByVersion(name string, version int) (ConfigGroup, error)
-	UpdateGroup(group ConfigGroup) error
-	PutGroup(group ConfigGroup, oldName string, oldVersion int) error
+	AddGroup(ctx context.Context, configGroup ConfigGroup) error
+	GetGroup(ctx context.Context, name string, version int) (ConfigGroup, error)
+	GetAllGroups(ctx context.Context) (map[string]ConfigGroup, error)
+	DeleteGroupByVersion(ctx context.Context, name string, version int) (ConfigGroup, error)
+	UpdateGroup(ctx context.Context, group ConfigGroup) error
+	PutGroup(ctx context.Context, group ConfigGroup, oldName string, oldVersion int) error
 
-	GetConfigsByLabels(name string, version int, labels map[string]string) ([]Config, error)
-	DeleteConfigsByLabels(name string, version int, labels map[string]string) error
+	GetConfigsByLabels(ctx context.Context, name string, version int, labels map[string]string) ([]Config, error)
+	DeleteConfigsByLabels(ctx context.Context, name string, version int, labels map[string]string) error
 }

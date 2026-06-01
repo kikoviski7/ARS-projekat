@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,10 +12,10 @@ import (
 	"strings"
 
 	capi "github.com/hashicorp/consul/api"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
-
-//dizajn baze:
-//groupPrefix/groupName/groupVersion/labelkey=labelvalue|labelkey=labelvalue/configPrefix/configName/configVersion
 
 const (
 	configPrefix string = "config/"
@@ -22,8 +23,9 @@ const (
 )
 
 var (
-	ErrConfigNotFound = fmt.Errorf("config not found")
-	ErrGroupNotFound  = fmt.Errorf("group not found")
+	ErrConfigNotFound  = fmt.Errorf("config not found")
+	ErrGroupNotFound   = fmt.Errorf("group not found")
+	consulTracer       = otel.Tracer("config-consul-repository")
 )
 
 type ConfigConsulRepository struct {
@@ -32,11 +34,10 @@ type ConfigConsulRepository struct {
 }
 
 func NewConfigConsulRepository() model.ConfigRepository {
-
 	repoConfig := capi.DefaultConfig()
 	repoConfig.Address = os.Getenv("DB") + ":" + os.Getenv("DBPORT")
 
-	cli, err := capi.NewClient(repoConfig) //config for long live connection
+	cli, err := capi.NewClient(repoConfig)
 	if err != nil {
 		fmt.Println("connection to client database failed: %w", err)
 	}
@@ -44,102 +45,122 @@ func NewConfigConsulRepository() model.ConfigRepository {
 		cli: cli,
 		kv:  cli.KV(),
 	}
-
 }
 
-func (c ConfigConsulRepository) Add(config model.Config) {
+func (c ConfigConsulRepository) Add(ctx context.Context, config model.Config) error {
+    _, span := consulTracer.Start(ctx, "ConfigConsulRepo.Add")
+    defer span.End()
 
-	data, err := json.Marshal(config)
-	if err != nil {
-		fmt.Println("failed to marshal in put config: %w", err)
-	}
+    span.SetAttributes(
+        attribute.String("config.name", config.Name),
+        attribute.Int("config.version", config.Version),
+    )
 
-	key := configKey(config.Name, config.Version)
+    data, err := json.Marshal(config)
+    if err != nil {
+        span.RecordError(err)
+        span.SetStatus(codes.Error, err.Error())
+        return fmt.Errorf("failed to marshal config: %w", err)
+    }
 
-	//key-value entry reprezentacija u consul-u
-	pair := &capi.KVPair{
-		Key:   key,
-		Value: data,
-	}
+    _, err = c.kv.Put(&capi.KVPair{Key: configKey(config.Name, config.Version), Value: data}, nil)
+    if err != nil {
+        span.RecordError(err)
+        span.SetStatus(codes.Error, err.Error())
+        return fmt.Errorf("failed to put config: %w", err)
+    }
 
-	//PUT poziv ka bazi
-	_, err = c.kv.Put(pair, nil)
-	if err != nil {
-		fmt.Println("failed to put config: %w", err)
-	}
+    return nil
 }
 
-func (c ConfigConsulRepository) AddGroup(group model.ConfigGroup) {
+func (c ConfigConsulRepository) AddGroup(ctx context.Context, group model.ConfigGroup) error {
+    _, span := consulTracer.Start(ctx, "ConfigConsulRepo.AddGroup")
+    defer span.End()
 
-	groupForStorage := model.ConfigGroup{
-		Name:    group.Name,
-		Version: group.Version,
-		Configs: nil,
-	}
+    span.SetAttributes(
+        attribute.String("group.name", group.Name),
+        attribute.Int("group.version", group.Version),
+        attribute.Int("group.configs_count", len(group.Configs)),
+    )
 
-	groupData, err := json.Marshal(groupForStorage)
-	if err != nil {
-		fmt.Println("failed to marshal group:", err)
-		return
-	}
+    groupForStorage := model.ConfigGroup{Name: group.Name, Version: group.Version, Configs: nil}
 
-	groupPair := &capi.KVPair{
-		Key:   groupKey(group.Name, group.Version),
-		Value: groupData,
-	}
+    groupData, err := json.Marshal(groupForStorage)
+    if err != nil {
+        span.RecordError(err)
+        span.SetStatus(codes.Error, err.Error())
+        return fmt.Errorf("failed to marshal group: %w", err)
+    }
 
-	_, err = c.kv.Put(groupPair, nil)
-	if err != nil {
-		fmt.Println("failed to put group:", err)
-		return
-	}
+    _, err = c.kv.Put(&capi.KVPair{Key: groupKey(group.Name, group.Version), Value: groupData}, nil)
+    if err != nil {
+        span.RecordError(err)
+        span.SetStatus(codes.Error, err.Error())
+        return fmt.Errorf("failed to put group: %w", err)
+    }
 
-	for _, config := range group.Configs {
-		configData, err := json.Marshal(config)
-		if err != nil {
-			fmt.Println("failed to marshal config inside group:", err)
-			continue
-		}
+    for _, config := range group.Configs {
+        configData, err := json.Marshal(config)
+        if err != nil {
+            span.RecordError(err)
+            span.SetStatus(codes.Error, err.Error())
+            return fmt.Errorf("failed to marshal config inside group: %w", err)
+        }
 
-		configPair := &capi.KVPair{
-			Key:   groupConfigKey(group.Name, group.Version, config),
-			Value: configData,
-		}
+        _, err = c.kv.Put(&capi.KVPair{Key: groupConfigKey(group.Name, group.Version, config), Value: configData}, nil)
+        if err != nil {
+            span.RecordError(err)
+            span.SetStatus(codes.Error, err.Error())
+            return fmt.Errorf("failed to put config inside group: %w", err)
+        }
+    }
 
-		_, err = c.kv.Put(configPair, nil)
-		if err != nil {
-			fmt.Println("failed to put config inside group:", err)
-		}
-	}
+    return nil
 }
 
-func (c ConfigConsulRepository) DeleteByVersion(name string, version int) (model.Config, error) {
+func (c ConfigConsulRepository) DeleteByVersion(ctx context.Context, name string, version int) (model.Config, error) {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.DeleteByVersion")
+	defer span.End()
 
-	config, err := c.Get(name, version)
+	span.SetAttributes(
+		attribute.String("config.name", name),
+		attribute.Int("config.version", version),
+	)
+
+	config, err := c.Get(ctx, name, version)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		if errors.Is(err, ErrConfigNotFound) {
 			return model.Config{}, fmt.Errorf("nothing to delete: %w", err)
 		}
-
 		return model.Config{}, err
 	}
 
 	_, err = c.kv.Delete(configKey(name, version), nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return model.Config{}, fmt.Errorf("failed to delete config from consul: %w", err)
 	}
 
 	return config, nil
 }
 
-func (c ConfigConsulRepository) DeleteConfigsByLabels(
-	name string,
-	version int,
-	labels map[string]string,
-) error {
+func (c ConfigConsulRepository) DeleteConfigsByLabels(ctx context.Context, name string, version int, labels map[string]string) error {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.DeleteConfigsByLabels")
+	defer span.End()
 
-	_, err := c.GetGroup(name, version)
+	span.SetAttributes(
+		attribute.String("group.name", name),
+		attribute.Int("group.version", version),
+		attribute.Int("labels.count", len(labels)),
+	)
+
+	_, err := c.GetGroup(ctx, name, version)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -147,147 +168,178 @@ func (c ConfigConsulRepository) DeleteConfigsByLabels(
 
 	pairs, _, err := c.kv.List(prefix, nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("failed to get grouped configs from consul: %w", err)
 	}
 
 	if len(pairs) == 0 {
-		return fmt.Errorf("nothing to delete: no configs found with labels %v", labels)
+		err := fmt.Errorf("nothing to delete: no configs found with labels %v", labels)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
 	}
 
 	for _, pair := range pairs {
 		_, err := c.kv.Delete(pair.Key, nil)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return fmt.Errorf("failed to delete grouped config from consul: %w", err)
 		}
 	}
 
+	span.SetAttributes(attribute.Int("deleted.count", len(pairs)))
 	return nil
 }
 
-func (c ConfigConsulRepository) DeleteGroupByVersion(
-	name string,
-	version int,
-) (model.ConfigGroup, error) {
+func (c ConfigConsulRepository) DeleteGroupByVersion(ctx context.Context, name string, version int) (model.ConfigGroup, error) {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.DeleteGroupByVersion")
+	defer span.End()
 
-	group, err := c.GetGroup(name, version)
+	span.SetAttributes(
+		attribute.String("group.name", name),
+		attribute.Int("group.version", version),
+	)
+
+	group, err := c.GetGroup(ctx, name, version)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		if errors.Is(err, ErrGroupNotFound) {
 			return model.ConfigGroup{}, fmt.Errorf("nothing to delete: %w", err)
 		}
-
 		return model.ConfigGroup{}, err
 	}
 
 	_, err = c.kv.DeleteTree(groupPrefixKey(name, version), nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return model.ConfigGroup{}, fmt.Errorf("failed to delete grouped configs from consul: %w", err)
 	}
 
 	_, err = c.kv.Delete(groupKey(name, version), nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return model.ConfigGroup{}, fmt.Errorf("failed to delete group metadata from consul: %w", err)
 	}
 
 	return group, nil
 }
 
-func (c ConfigConsulRepository) Get(name string, version int) (model.Config, error) {
+func (c ConfigConsulRepository) Get(ctx context.Context, name string, version int) (model.Config, error) {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.Get")
+	defer span.End()
 
-	key := configKey(name, version)
+	span.SetAttributes(
+		attribute.String("config.name", name),
+		attribute.Int("config.version", version),
+	)
 
-	pair, _, err := c.kv.Get(key, nil)
+	pair, _, err := c.kv.Get(configKey(name, version), nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return model.Config{}, fmt.Errorf("failed to get config from consul: %w", err)
 	}
 
 	if pair == nil {
-		return model.Config{}, fmt.Errorf("%w: name=%s version=%d", ErrConfigNotFound, name, version)
+		err := fmt.Errorf("%w: name=%s version=%d", ErrConfigNotFound, name, version)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return model.Config{}, err
 	}
 
 	var config model.Config
-
 	err = json.Unmarshal(pair.Value, &config)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return model.Config{}, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	return config, nil
 }
 
-func (c ConfigConsulRepository) GetAll() (map[string]model.Config, error) {
+func (c ConfigConsulRepository) GetAll(ctx context.Context) (map[string]model.Config, error) {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.GetAll")
+	defer span.End()
 
 	pairs, _, err := c.kv.List(configPrefix, nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, fmt.Errorf("failed to get configs: %w", err)
 	}
 
 	configs := make(map[string]model.Config)
 
 	for _, pair := range pairs {
-
 		var config model.Config
-
 		err := json.Unmarshal(pair.Value, &config)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
-
-		key := config.Name + "/" + strconv.Itoa(config.Version)
-
-		configs[key] = config
+		configs[config.Name+"/"+strconv.Itoa(config.Version)] = config
 	}
 
+	span.SetAttributes(attribute.Int("configs.count", len(configs)))
 	return configs, nil
 }
 
-func (c ConfigConsulRepository) GetAllGroups() (map[string]model.ConfigGroup, error) {
+func (c ConfigConsulRepository) GetAllGroups(ctx context.Context) (map[string]model.ConfigGroup, error) {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.GetAllGroups")
+	defer span.End()
 
 	pairs, _, err := c.kv.List(groupPrefix, nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, fmt.Errorf("failed to get groups from consul: %w", err)
 	}
 
 	groups := make(map[string]model.ConfigGroup)
 
 	for _, pair := range pairs {
-
-		// group metadata keys look like:
-		// group/backend/1
-		//
-		// grouped config keys look like:
-		// group/backend/1/env=prod/config/db/1
-		//
-		// So we only want keys with exactly 3 parts.
 		parts := strings.Split(pair.Key, "/")
 		if len(parts) != 3 {
 			continue
 		}
 
 		var group model.ConfigGroup
-
 		err := json.Unmarshal(pair.Value, &group)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return nil, fmt.Errorf("failed to unmarshal group: %w", err)
 		}
 
 		group.Configs = nil
-
-		key := group.Name + "/" + strconv.Itoa(group.Version)
-
-		groups[key] = group
+		groups[group.Name+"/"+strconv.Itoa(group.Version)] = group
 	}
 
+	span.SetAttributes(attribute.Int("groups.count", len(groups)))
 	return groups, nil
 }
 
-func (c ConfigConsulRepository) GetConfigsByLabels(
-	name string,
-	version int,
-	labels map[string]string,
-) ([]model.Config, error) {
+func (c ConfigConsulRepository) GetConfigsByLabels(ctx context.Context, name string, version int, labels map[string]string) ([]model.Config, error) {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.GetConfigsByLabels")
+	defer span.End()
 
-	_, err := c.GetGroup(name, version)
+	span.SetAttributes(
+		attribute.String("group.name", name),
+		attribute.Int("group.version", version),
+		attribute.Int("labels.count", len(labels)),
+	)
+
+	_, err := c.GetGroup(ctx, name, version)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -295,6 +347,8 @@ func (c ConfigConsulRepository) GetConfigsByLabels(
 
 	pairs, _, err := c.kv.List(prefix, nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, fmt.Errorf("failed to get grouped configs from consul: %w", err)
 	}
 
@@ -302,49 +356,69 @@ func (c ConfigConsulRepository) GetConfigsByLabels(
 
 	for _, pair := range pairs {
 		var config model.Config
-
 		err := json.Unmarshal(pair.Value, &config)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return nil, fmt.Errorf("failed to unmarshal grouped config: %w", err)
 		}
-
 		configs = append(configs, config)
 	}
 
+	span.SetAttributes(attribute.Int("results.count", len(configs)))
 	return configs, nil
 }
 
-func (c ConfigConsulRepository) GetGroup(name string, version int) (model.ConfigGroup, error) {
+func (c ConfigConsulRepository) GetGroup(ctx context.Context, name string, version int) (model.ConfigGroup, error) {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.GetGroup")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("group.name", name),
+		attribute.Int("group.version", version),
+	)
 
 	pair, _, err := c.kv.Get(groupKey(name, version), nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return model.ConfigGroup{}, fmt.Errorf("failed to get group from consul: %w", err)
 	}
 
 	if pair == nil {
-		return model.ConfigGroup{}, fmt.Errorf("%w: name=%s version=%d", ErrGroupNotFound, name, version)
+		err := fmt.Errorf("%w: name=%s version=%d", ErrGroupNotFound, name, version)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return model.ConfigGroup{}, err
 	}
 
 	var group model.ConfigGroup
-
 	err = json.Unmarshal(pair.Value, &group)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return model.ConfigGroup{}, fmt.Errorf("failed to unmarshal group: %w", err)
 	}
 
 	group.Configs = nil
-
 	return group, nil
 }
 
-func (c ConfigConsulRepository) PutGroup(
-	group model.ConfigGroup,
-	oldName string,
-	oldVersion int,
-) error {
+func (c ConfigConsulRepository) PutGroup(ctx context.Context, group model.ConfigGroup, oldName string, oldVersion int) error {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.PutGroup")
+	defer span.End()
 
-	_, err := c.GetGroup(oldName, oldVersion)
+	span.SetAttributes(
+		attribute.String("group.old_name", oldName),
+		attribute.Int("group.old_version", oldVersion),
+		attribute.String("group.new_name", group.Name),
+		attribute.Int("group.new_version", group.Version),
+	)
+
+	_, err := c.GetGroup(ctx, oldName, oldVersion)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -354,106 +428,113 @@ func (c ConfigConsulRepository) PutGroup(
 	if oldKey != newKey {
 		_, err = c.kv.DeleteTree(groupPrefixKey(oldName, oldVersion), nil)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return fmt.Errorf("failed to delete old grouped configs from consul: %w", err)
 		}
 
 		_, err = c.kv.Delete(oldKey, nil)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return fmt.Errorf("failed to delete old group metadata from consul: %w", err)
 		}
 	} else {
 		_, err = c.kv.DeleteTree(groupPrefixKey(group.Name, group.Version), nil)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return fmt.Errorf("failed to delete old grouped configs from consul: %w", err)
 		}
 	}
 
-	groupForStorage := model.ConfigGroup{
-		Name:    group.Name,
-		Version: group.Version,
-		Configs: nil,
-	}
+	groupForStorage := model.ConfigGroup{Name: group.Name, Version: group.Version, Configs: nil}
 
 	groupData, err := json.Marshal(groupForStorage)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("failed to marshal group: %w", err)
 	}
 
-	groupPair := &capi.KVPair{
-		Key:   newKey,
-		Value: groupData,
-	}
-
-	_, err = c.kv.Put(groupPair, nil)
+	_, err = c.kv.Put(&capi.KVPair{Key: newKey, Value: groupData}, nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("failed to put group metadata in consul: %w", err)
 	}
 
 	for _, config := range group.Configs {
 		configData, err := json.Marshal(config)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return fmt.Errorf("failed to marshal grouped config: %w", err)
 		}
 
-		configPair := &capi.KVPair{
-			Key:   groupConfigKey(group.Name, group.Version, config),
-			Value: configData,
-		}
-
-		_, err = c.kv.Put(configPair, nil)
+		_, err = c.kv.Put(&capi.KVPair{Key: groupConfigKey(group.Name, group.Version, config), Value: configData}, nil)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return fmt.Errorf("failed to put grouped config in consul: %w", err)
 		}
 	}
 
 	return nil
 }
-func (c ConfigConsulRepository) UpdateGroup(group model.ConfigGroup) error {
 
-	_, err := c.GetGroup(group.Name, group.Version)
+func (c ConfigConsulRepository) UpdateGroup(ctx context.Context, group model.ConfigGroup) error {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.UpdateGroup")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("group.name", group.Name),
+		attribute.Int("group.version", group.Version),
+		attribute.Int("group.configs_count", len(group.Configs)),
+	)
+
+	_, err := c.GetGroup(ctx, group.Name, group.Version)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
 	_, err = c.kv.DeleteTree(groupPrefixKey(group.Name, group.Version), nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("failed to delete old grouped configs from consul: %w", err)
 	}
 
-	groupForStorage := model.ConfigGroup{
-		Name:    group.Name,
-		Version: group.Version,
-		Configs: nil,
-	}
+	groupForStorage := model.ConfigGroup{Name: group.Name, Version: group.Version, Configs: nil}
 
 	groupData, err := json.Marshal(groupForStorage)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("failed to marshal group: %w", err)
 	}
 
-	groupPair := &capi.KVPair{
-		Key:   groupKey(group.Name, group.Version),
-		Value: groupData,
-	}
-
-	_, err = c.kv.Put(groupPair, nil)
+	_, err = c.kv.Put(&capi.KVPair{Key: groupKey(group.Name, group.Version), Value: groupData}, nil)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("failed to update group metadata in consul: %w", err)
 	}
 
 	for _, config := range group.Configs {
 		configData, err := json.Marshal(config)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return fmt.Errorf("failed to marshal grouped config: %w", err)
 		}
 
-		configPair := &capi.KVPair{
-			Key:   groupConfigKey(group.Name, group.Version, config),
-			Value: configData,
-		}
-
-		_, err = c.kv.Put(configPair, nil)
+		_, err = c.kv.Put(&capi.KVPair{Key: groupConfigKey(group.Name, group.Version, config), Value: configData}, nil)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return fmt.Errorf("failed to update grouped config in consul: %w", err)
 		}
 	}
@@ -461,9 +542,9 @@ func (c ConfigConsulRepository) UpdateGroup(group model.ConfigGroup) error {
 	return nil
 }
 
-//***************************************************************
-//HELPER FUNCTION
-//***************************************************************
+// ***************************************************************
+// HELPER FUNCTIONS
+// ***************************************************************
 
 func configKey(name string, version int) string {
 	return configPrefix + name + "/" + strconv.Itoa(version)
@@ -479,27 +560,19 @@ func groupPrefixKey(name string, version int) string {
 
 func buildLabelsKey(labels map[string]string) string {
 	keys := make([]string, 0, len(labels))
-
 	for key := range labels {
 		keys = append(keys, key)
 	}
-
 	sort.Strings(keys)
 
 	parts := make([]string, 0, len(keys))
-
 	for _, key := range keys {
 		parts = append(parts, key+"="+labels[key])
 	}
-
 	return strings.Join(parts, "|")
 }
 
-func groupConfigKey(
-	groupName string,
-	groupVersion int,
-	config model.Config,
-) string {
+func groupConfigKey(groupName string, groupVersion int, config model.Config) string {
 	return groupKey(groupName, groupVersion) +
 		"/" +
 		buildLabelsKey(config.Labels) +
@@ -507,11 +580,7 @@ func groupConfigKey(
 		configKey(config.Name, config.Version)
 }
 
-func groupConfigPrefix(
-	groupName string,
-	groupVersion int,
-	labels map[string]string,
-) string {
+func groupConfigPrefix(groupName string, groupVersion int, labels map[string]string) string {
 	return groupKey(groupName, groupVersion) +
 		"/" +
 		buildLabelsKey(labels) +

@@ -3,6 +3,8 @@ package services
 import (
 	"projekat/model"
 
+	"context"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -27,7 +29,7 @@ func (s ConfigGroupService) GetGroup(
 	version int,
 ) (model.ConfigGroup, error) {
 
-	ctx, span := s.tracer.Start(ctx, "GetGroup")
+	ctx, span := s.tracer.Start(ctx, "ConfigGroupService.GetGroup")
 	defer span.End()
 
 	span.SetAttributes(
@@ -57,7 +59,7 @@ func (s ConfigGroupService) GetAllGroups(
 	map[string]model.ConfigGroup,
 	error,
 ) {
-	ctx, span := s.tracer.Start(ctx, "GetAllGroups")
+	ctx, span := s.tracer.Start(ctx, "ConfigGroupService.GetAllGroups")
 	defer span.End()
 
 	groups, err := s.repo.GetAllGroups(ctx)
@@ -81,7 +83,7 @@ func (s ConfigGroupService) PostGroup(
 	version int,
 	configs []model.Config,
 ) error {
-	ctx, span := s.tracer.Start(ctx, "PostGroup")
+	ctx, span := s.tracer.Start(ctx, "ConfigGroupService.PostGroup")
 	defer span.End()
 
 	span.SetAttributes(
@@ -127,7 +129,7 @@ func (s ConfigGroupService) DeleteGroupByVersion(
 	name string,
 	version int,
 ) error {
-	ctx, span := s.tracer.Start(ctx, "DeleteGroupByVersion")
+	ctx, span := s.tracer.Start(ctx, "ConfigGroupService.DeleteGroupByVersion")
 	defer span.End()
 
 	span.SetAttributes(
@@ -153,7 +155,7 @@ func (s ConfigGroupService) DeleteConfigByVersion(
 	configName string,
 	configVersion int,
 ) error {
-	ctx, span := s.tracer.Start(ctx, "DeleteConfigByVersion")
+	ctx, span := s.tracer.Start(ctx, "ConfigGroupService.DeleteConfigByVersion")
 	defer span.End()
 
 	span.SetAttributes(
@@ -202,7 +204,7 @@ func (s *ConfigGroupService) PutGroup(
 	groupName string,
 	groupVersion int,
 ) error {
-	ctx, span := s.tracer.Start(ctx, "PutGroup")
+	ctx, span := s.tracer.Start(ctx, "ConfigGroupService.PutGroup")
 	defer span.End()
 
 	span.SetAttributes(
@@ -247,7 +249,7 @@ func (s *ConfigGroupService) GetConfigsByLabels(
 	version int,
 	labels map[string]string,
 ) ([]model.Config, error) {
-	ctx, span := s.tracer.Start(ctx, "GetConfigsByLabels")
+	ctx, span := s.tracer.Start(ctx, "ConfigGroupService.GetConfigsByLabels")
 	defer span.End()
 
 	span.SetAttributes(
@@ -277,7 +279,7 @@ func (s *ConfigGroupService) DeleteConfigsByLabels(
 	version int,
 	labels map[string]string,
 ) error {
-	ctx, span := s.tracer.Start(ctx, "DeleteConfigsByLabels")
+	ctx, span := s.tracer.Start(ctx, "ConfigGroupService.DeleteConfigsByLabels")
 	defer span.End()
 
 	span.SetAttributes(

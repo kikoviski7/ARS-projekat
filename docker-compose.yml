@@ -1,17 +1,18 @@
 version: '3.9'
-
-services: 
-  api: 
+services:
+  api:
     build: .
     container_name: ars-api
-    ports: 
+    ports:
       - "8000:8000"
     environment:
       - DB=consul
       - DBPORT=8500
+      - JAEGER_ENDPOINT=http://jaeger:4317
     depends_on:
       - consul
-    
+      - jaeger
+
   consul:
     image: hashicorp/consul:latest
     ports:
@@ -21,3 +22,16 @@ services:
     command: "agent -server -ui -bootstrap-expect 1 -client 0.0.0.0"
     volumes:
       - ./consul-data:/consul/data
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - LOG_LEVEL=info
+    restart: always

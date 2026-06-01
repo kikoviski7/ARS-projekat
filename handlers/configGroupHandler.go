@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ConfigGroupHandler struct {
@@ -29,7 +30,7 @@ func NewConfigGroupHandler(service services.ConfigGroupService) ConfigGroupHandl
 // POST /groups/{name}/{version}
 func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 
-	ctx, span := h.tracer.Start(r.Context(), "ConfigGroupHandler.PostGroup")
+	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.PostGroup")
 	defer span.End()
 
 	name := mux.Vars(r)["name"]
@@ -74,7 +75,7 @@ func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 // GET /groups
 func (c ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request) {
 
-	ctx, span := h.tracer.Start(r.Context(), "ConfigGroupHandler.GetAllGroups")
+	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.GetAllGroups")
 	defer span.End()
 
 	groups, err := c.service.GetAllGroups(ctx)
@@ -102,7 +103,7 @@ func (c ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request)
 // GET /groups/{name}/{version}
 func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 
-	ctx, span := h.tracker.Start(r.Context(), "ConfigGroupHandler.GetGroup")
+	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.GetGroup")
 	defer span.End()
 
 	name := mux.Vars(r)["name"]
@@ -116,7 +117,7 @@ func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to convert version ascii to int")
+		span.SetStatus(codes.Error, "failed to convert version ascii to int")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -124,7 +125,7 @@ func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 	group, err := c.service.GetGroup(ctx, name, versionInt)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to get group")
+		span.SetStatus(codes.Error, "failed to get group")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -132,12 +133,12 @@ func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 	resp, err := json.Marshal(group)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to marshal config")
+		span.SetStatus(codes.Error, "failed to marshal config")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	span.SetStatus(code.Ok, "group retrieved successfully")
+	span.SetStatus(codes.Ok, "group retrieved successfully")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(resp)
@@ -146,7 +147,7 @@ func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 // DELETE /groups/{name}/{version}
 func (c ConfigGroupHandler) DeleteGroupByVersion(w http.ResponseWriter, r *http.Request) {
 
-	ctx, span := h.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteGroupByVersion")
+	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteGroupByVersion")
 	defer span.End();
 
 	name := mux.Vars(r)["name"]
@@ -160,7 +161,7 @@ func (c ConfigGroupHandler) DeleteGroupByVersion(w http.ResponseWriter, r *http.
 
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to convert version ascii to int")
+		span.SetStatus(codes.Error, "failed to convert version ascii to int")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -168,12 +169,12 @@ func (c ConfigGroupHandler) DeleteGroupByVersion(w http.ResponseWriter, r *http.
 	err = c.service.DeleteGroupByVersion(ctx, name, versionInt)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to delete group by version")
+		span.SetStatus(codes.Error, "failed to delete group by version")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	span.SetStatus(code.Ok, "config deleted via version successfully")
+	span.SetStatus(codes.Ok, "config deleted via version successfully")
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -181,7 +182,7 @@ func (c ConfigGroupHandler) DeleteGroupByVersion(w http.ResponseWriter, r *http.
 // DELETE /groups/{groupName}/{groupVersion}/configs/{configName}/{configVersion}
 func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http.Request) {
 
-	ctx, span := h.tracer.Start(r.Context(), "ConfigGroupHandler")
+	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler")
 	defer span.End()
 
 	groupName := mux.Vars(r)["groupName"]
@@ -195,7 +196,7 @@ func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http
 
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to convert version ascii to int")
+		span.SetStatus(codes.Error, "failed to convert version ascii to int")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -211,7 +212,7 @@ func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http
 
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to convert version ascii to int")
+		span.SetStatus(codes.Error, "failed to convert version ascii to int")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -226,12 +227,12 @@ func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http
 
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to delete config by version")
+		span.SetStatus(codes.Error, "failed to delete config by version")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	span.SetStatus(code.Ok, "config by version deleted successfully")
+	span.SetStatus(codes.Ok, "config by version deleted successfully")
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -239,7 +240,7 @@ func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http
 // PUT /groups/{name}/{version}
 func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 
-	ctx, span := h.tracer.Start(r.Context(), "ConfigGroupHandler.PutGroup")
+	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.PutGroup")
 	defer span.End()
 
 	groupName := mux.Vars(r)["name"]
@@ -247,13 +248,13 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 	groupVersion, err := strconv.Atoi(version)
 
 	span.SetAttributes(
-		attribute.String("group.name", name),
-		attribute.String("group.version", version),
+		attribute.String("group.name", groupName),
+		attribute.Int("group.version", groupVersion),
 	)
 
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to convert version ascii to int")
+		span.SetStatus(codes.Error, "failed to convert version ascii to int")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -263,7 +264,7 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&config)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to decode request body")
+		span.SetStatus(codes.Error, "failed to decode request body")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -271,12 +272,12 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 	err = c.service.PutGroup(ctx, config, groupName, groupVersion)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to put config into group")
+		span.SetStatus(codes.Error, "failed to put config into group")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	span.SetStatus(code.Ok, "config successfully put into group")
+	span.SetStatus(codes.Ok, "config successfully put into group")
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -284,7 +285,7 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 // GET /configsGroup/{name}/{version}/search
 func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 
-	ctx, span := h.tracer.Start(r.Context(), "ConfigGroupHandler.GetConfigsByLabels")
+	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.GetConfigsByLabels")
 	defer span.End()
 
 	name := mux.Vars(r)["name"]
@@ -298,7 +299,7 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to convert version ascii to int")
+		span.SetStatus(codes.Error, "failed to convert version ascii to int")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -312,7 +313,7 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 	}
 
 	if len(labels) == 0 {
-		span.SetStatus(code.Error, "no labels provided in query parameters")
+		span.SetStatus(codes.Error, "no labels provided in query parameters")
 		http.Error(w, "no labels provided in query parameters", http.StatusBadRequest)
 		return
 	}
@@ -320,7 +321,7 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 	configs, err := c.service.GetConfigsByLabels(ctx, name, versionInt, labels)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to get configs by labels")
+		span.SetStatus(codes.Error, "failed to get configs by labels")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -328,12 +329,12 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 	resp, err := json.Marshal(configs)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to marshal config")
+		span.SetStatus(codes.Error, "failed to marshal config")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	span.SetStatus(code.Ok, "config retrieved from group by label successfully")
+	span.SetStatus(codes.Ok, "config retrieved from group by label successfully")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(resp)
@@ -342,7 +343,7 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 // DELETE /configsGroup/{name}/{version}/search
 func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
     
-	ctx, span := h.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteConfigsByLabels")
+	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteConfigsByLabels")
 	defer span.End()
 
 	name := mux.Vars(r)["name"]
@@ -356,7 +357,7 @@ func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http
 
     if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to convert version ascii to int")
+		span.SetStatus(codes.Error, "failed to convert version ascii to int")
         http.Error(w, err.Error(), http.StatusBadRequest)
         return
     }
@@ -369,7 +370,7 @@ func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http
     }
 
     if len(labels) == 0 {
-		span.SetStatus(code.Error, "no labels provided in query parameters")
+		span.SetStatus(codes.Error, "no labels provided in query parameters")
         http.Error(w, "no labels provided in query parameters", http.StatusBadRequest)
         return
     }
@@ -377,12 +378,12 @@ func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http
     err = c.service.DeleteConfigsByLabels(ctx, name, versionInt, labels)
     if err != nil {
 		span.RecordError(err)
-		span.SetStatus(code.Error, "failed to delete configs by labels")
+		span.SetStatus(codes.Error, "failed to delete configs by labels")
         http.Error(w, err.Error(), http.StatusNotFound)
         return
     }
 
-	span.SetStatus(code.Ok, "configs inside the group deleted successfully")
+	span.SetStatus(codes.Ok, "configs inside the group deleted successfully")
 
     w.WriteHeader(http.StatusNoContent)
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func TracingMiddleware(next http.Handler) http.Handler{
-	tracer := otel.Tracer("middleware")
+	tracer := otel.Tracer("config-service")
 
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){

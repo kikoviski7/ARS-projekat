@@ -3,6 +3,8 @@ package services
 import (
 	"projekat/model"
 
+	"context"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -31,7 +33,7 @@ func (s *ConfigService) Add(ctx context.Context, config model.Config) error {
 		attribute.Int("config.params.count", len(config.Params)),
 	)
 
-	err := s.repo.Add(config)
+	err := s.repo.Add(ctx, config)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to add config")
@@ -43,7 +45,7 @@ func (s *ConfigService) Add(ctx context.Context, config model.Config) error {
 }
 
 func (s *ConfigService) Get(ctx context.Context, name string, version int) (model.Config, error) {
-	ctx, span := s.tracer.Start(ctx, "Get")
+	ctx, span := s.tracer.Start(ctx, "ConfigService.Get")
 	defer span.End()
 
 	span.SetAttributes(
@@ -51,7 +53,7 @@ func (s *ConfigService) Get(ctx context.Context, name string, version int) (mode
 		attribute.Int("config.version", version),
 	)
 
-	config, err := s.repo.Get(name, version)
+	config, err := s.repo.Get(ctx, name, version)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to get config")
@@ -67,10 +69,10 @@ func (s *ConfigService) Get(ctx context.Context, name string, version int) (mode
 }
 
 func (s *ConfigService) GetAll(ctx context.Context) (map[string]model.Config, error) {
-	ctx, span := s.tracer.Start(ctx, "GetAll")
+	ctx, span := s.tracer.Start(ctx, "ConfigService.GetAll")
 	defer span.End()
 
-	configs, err := s.repo.GetAll()
+	configs, err := s.repo.GetAll(ctx)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to get all configs")
@@ -86,7 +88,7 @@ func (s *ConfigService) GetAll(ctx context.Context) (map[string]model.Config, er
 }
 
 func (s *ConfigService) Post(ctx context.Context, name string, version int, params map[string]string) error {
-	ctx, span := s.tracer.Start(ctx, "Post")
+	ctx, span := s.tracer.Start(ctx, "ConfigService.Post")
 	defer span.End()
 
 	span.SetAttributes(
@@ -101,7 +103,7 @@ func (s *ConfigService) Post(ctx context.Context, name string, version int, para
 		Params:  params,
 	}
 
-	err := s.repo.Add(config)
+	err := s.repo.Add(ctx, config)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to add config")
@@ -113,7 +115,7 @@ func (s *ConfigService) Post(ctx context.Context, name string, version int, para
 }
 
 func (s *ConfigService) DeleteByVersion(ctx context.Context, name string, version int) error {
-	ctx, span := s.tracer.Start(ctx, "DeleteByVersion")
+	ctx, span := s.tracer.Start(ctx, "ConfigService.DeleteByVersion")
 	defer span.End()
 
 	span.SetAttributes(
@@ -121,7 +123,7 @@ func (s *ConfigService) DeleteByVersion(ctx context.Context, name string, versio
 		attribute.Int("config.version", version),
 	)
 
-	err := s.repo.DeleteByVersion(name, version)
+	_, err := s.repo.DeleteByVersion(ctx, name, version)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to delete config")
