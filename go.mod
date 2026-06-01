@@ -5,6 +5,7 @@ go 1.25.0
 require github.com/gorilla/mux v1.8.1
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/consul/api v1.27.0
 	golang.org/x/time v0.15.0
 )
@@ -12,7 +13,6 @@ require (
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
