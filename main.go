@@ -37,11 +37,13 @@ func main() {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/configs/{name}/{version}", handler.Get).Methods("GET")
+	router.HandleFunc("/configs/{name}", handler.GetByName).Methods("GET")
 	router.HandleFunc("/configs", handler.GetAll).Methods("GET")
 	router.HandleFunc("/configs/{name}/{version}", handler.Post).Methods("POST")
 	router.HandleFunc("/configs/{name}/{version}", handler.DeleteByVersion).Methods("DELETE")
 
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.GetGroup).Methods("GET")
+
 	router.HandleFunc("/configsGroup", groupHandler.GetAllGroups).Methods("GET")
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.PostGroup).Methods("POST")
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.DeleteGroupByVersion).Methods("DELETE")

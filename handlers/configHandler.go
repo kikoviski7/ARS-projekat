@@ -68,6 +68,30 @@ func (c ConfigHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (c ConfigHandler) GetByName(w http.ResponseWriter, r *http.Request) {
+	// dobavi naziv
+	name := mux.Vars(r)["name"]
+
+	// pozovi servis metodu
+	configs, err := c.service.GetByName(name)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// vrati odgovor
+	resp, err := json.Marshal(configs)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(resp)
+}
+
 // GET /configs/{name}/{version}
 func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 	// dobavi naziv i verziju

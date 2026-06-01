@@ -22,6 +22,10 @@ func (s ConfigService) Get(name string, version int) (model.Config, error) {
 	return s.repo.Get(name, version)
 }
 
+func (s *ConfigService) GetByName(name string) ([]model.Config, error) {
+	return s.repo.GetByName(name)
+}
+
 func (s ConfigService) GetAll() (map[string]model.Config, error) {
 	return s.repo.GetAll()
 }

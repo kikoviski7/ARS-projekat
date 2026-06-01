@@ -16,6 +16,7 @@ type ConfigGroup struct {
 type ConfigRepository interface {
 	Add(config Config)
 	Get(name string, version int) (Config, error)
+	GetByName(name string) ([]Config, error)
 	GetAll() (map[string]Config, error)
 	DeleteByVersion(name string, version int) (Config, error)
 

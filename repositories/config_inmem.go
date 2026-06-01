@@ -46,6 +46,23 @@ func (r *ConfigInMem) Get(
 	return config, nil
 }
 
+func (r *ConfigInMem) GetByName(name string) ([]model.Config, error) {
+
+	configs := make([]model.Config, 0)
+
+	for _, config := range r.configs {
+		if config.Name == name {
+			configs = append(configs, config)
+		}
+	}
+
+	if len(configs) == 0 {
+		return nil, fmt.Errorf("config not found: name=%s", name)
+	}
+
+	return configs, nil
+}
+
 func (r *ConfigInMem) GetAll() (
 	map[string]model.Config,
 	error,

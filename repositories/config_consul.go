@@ -214,6 +214,44 @@ func (c ConfigConsulRepository) Get(name string, version int) (model.Config, err
 	return config, nil
 }
 
+func (c ConfigConsulRepository) GetByName(name string) ([]model.Config, error) {
+
+	prefix := configPrefix + name + "/"
+
+	pairs, _, err := c.kv.List(prefix, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configs by name from consul: %w", err)
+	}
+
+	configs := make([]model.Config, 0)
+
+	for _, pair := range pairs {
+
+		parts := strings.Split(pair.Key, "/")
+
+		// Only standalone config keys:
+		// config/{configName}/{configVersion}
+		if len(parts) != 3 {
+			continue
+		}
+
+		var config model.Config
+
+		err := json.Unmarshal(pair.Value, &config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+		}
+
+		configs = append(configs, config)
+	}
+
+	if len(configs) == 0 {
+		return nil, fmt.Errorf("%w: name=%s", ErrConfigNotFound, name)
+	}
+
+	return configs, nil
+}
+
 func (c ConfigConsulRepository) GetAll() (map[string]model.Config, error) {
 
 	pairs, _, err := c.kv.List(configPrefix, nil)
