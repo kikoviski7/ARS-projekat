@@ -2,6 +2,7 @@ package services
 
 import (
 	"projekat/model"
+	"time"
 
 	"context"
 
@@ -12,13 +13,13 @@ import (
 )
 
 type ConfigService struct {
-	repo model.ConfigRepository
+	repo   model.ConfigRepository
 	tracer trace.Tracer
 }
 
 func NewConfigService(repo model.ConfigRepository) ConfigService {
 	return ConfigService{
-		repo: repo,
+		repo:   repo,
 		tracer: otel.Tracer("config-service"),
 	}
 }
@@ -87,7 +88,7 @@ func (s *ConfigService) GetAll(ctx context.Context) (map[string]model.Config, er
 	return configs, nil
 }
 
-func (s *ConfigService) Post(ctx context.Context, name string, version int, params map[string]string) error {
+func (s *ConfigService) Post(ctx context.Context, name string, version int, params map[string]string, idempotencyKey string) error {
 	ctx, span := s.tracer.Start(ctx, "ConfigService.Post")
 	defer span.End()
 
@@ -95,18 +96,34 @@ func (s *ConfigService) Post(ctx context.Context, name string, version int, para
 		attribute.String("config.name", name),
 		attribute.Int("config.version", version),
 		attribute.Int("config.params.count", len(params)),
+		attribute.String("idempotency.key", idempotencyKey),
 	)
 
-	config := model.Config{
-		Name:    name,
-		Version: version,
-		Params:  params,
+	existingConfig, err := s.repo.GetByIdempotencyKey(ctx, idempotencyKey)
+	if err == nil && existingConfig != nil {
+		span.AddEvent("Group already exists for this idempotency key - returning cached result")
+		span.SetStatus(codes.Ok, "group already exists")
+		return nil
 	}
 
-	err := s.repo.Add(ctx, config)
+	config := model.Config{
+		Name:           name,
+		Version:        version,
+		Params:         params,
+		IdempotencyKey: idempotencyKey,
+	}
+
+	err = s.repo.Add(ctx, config)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to add config")
+		return err
+	}
+
+	const idempotencyTTL = 30 * time.Second
+	if err := s.repo.SaveIdempotencyResult(ctx, idempotencyKey, config, idempotencyTTL); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to save idempotency result")
 		return err
 	}
 

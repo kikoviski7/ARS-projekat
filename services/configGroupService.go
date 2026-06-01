@@ -2,6 +2,7 @@ package services
 
 import (
 	"projekat/model"
+	"time"
 
 	"context"
 
@@ -12,13 +13,13 @@ import (
 )
 
 type ConfigGroupService struct {
-	repo model.ConfigRepository
+	repo   model.ConfigRepository
 	tracer trace.Tracer
 }
 
 func NewConfigGroupService(repo model.ConfigRepository) ConfigGroupService {
 	return ConfigGroupService{
-		repo: repo,
+		repo:   repo,
 		tracer: otel.Tracer("config-group-service"),
 	}
 }
@@ -82,6 +83,7 @@ func (s ConfigGroupService) PostGroup(
 	name string,
 	version int,
 	configs []model.Config,
+	idempotencyKey string,
 ) error {
 	ctx, span := s.tracer.Start(ctx, "ConfigGroupService.PostGroup")
 	defer span.End()
@@ -90,12 +92,21 @@ func (s ConfigGroupService) PostGroup(
 		attribute.String("group.name", name),
 		attribute.Int("group.version", version),
 		attribute.Int("configs.count", len(configs)),
+		attribute.String("idempotency.key", idempotencyKey),
 	)
 
+	existingGroup, err := s.repo.GetByIdempotencyKey(ctx, idempotencyKey)
+	if err == nil && existingGroup != nil {
+		span.AddEvent("Group already exists for this idempotency keys - returning cached result")
+		span.SetStatus(codes.Ok, "group already exists")
+		return nil
+	}
+
 	group := model.ConfigGroup{
-		Name:    name,
-		Version: version,
-		Configs: configs,
+		Name:           name,
+		Version:        version,
+		Configs:        configs,
+		IdempotencyKey: idempotencyKey,
 	}
 
 	for i, config := range configs {
@@ -113,10 +124,17 @@ func (s ConfigGroupService) PostGroup(
 		}
 	}
 
-	err := s.repo.AddGroup(ctx, group)
+	err = s.repo.AddGroup(ctx, group)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to add group")
+		return err
+	}
+
+	const idempotencyTTL = 30 * time.Second
+	if err := s.repo.SaveIdempotencyResult(ctx, idempotencyKey, group, idempotencyTTL); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to save idempotency result")
 		return err
 	}
 

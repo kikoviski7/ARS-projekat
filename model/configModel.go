@@ -1,21 +1,29 @@
 package model
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type Config struct {
-	Name    string            `json:"name"`
-	Params  map[string]string `json:"params"`
-	Version int               `json:"version"`
-	Labels  map[string]string `json:"labels"`
+	Name           string            `json:"name"`
+	Params         map[string]string `json:"params"`
+	Version        int               `json:"version"`
+	Labels         map[string]string `json:"labels"`
+	IdempotencyKey string            `json:"-"`
 }
 
 type ConfigGroup struct {
-	Name    string   `json:"name"`
-	Configs []Config `json:"configs"`
-	Version int      `json:"version"`
+	Name           string   `json:"name"`
+	Configs        []Config `json:"configs"`
+	Version        int      `json:"version"`
+	IdempotencyKey string   `json:"-"`
 }
 
 type ConfigRepository interface {
+	GetByIdempotencyKey(ctx context.Context, key string) (*ConfigGroup, error)
+	SaveIdempotencyResult(ctx context.Context, key string, result interface{}, ttl time.Duration) error
+
 	Add(ctx context.Context, config Config) error
 	Get(ctx context.Context, name string, version int) (Config, error)
 	GetAll(ctx context.Context) (map[string]Config, error)

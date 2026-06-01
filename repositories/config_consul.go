@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	capi "github.com/hashicorp/consul/api"
 	"go.opentelemetry.io/otel"
@@ -23,14 +24,15 @@ const (
 )
 
 var (
-	ErrConfigNotFound  = fmt.Errorf("config not found")
-	ErrGroupNotFound   = fmt.Errorf("group not found")
-	consulTracer       = otel.Tracer("config-consul-repository")
+	ErrConfigNotFound = fmt.Errorf("config not found")
+	ErrGroupNotFound  = fmt.Errorf("group not found")
+	consulTracer      = otel.Tracer("config-consul-repository")
 )
 
 type ConfigConsulRepository struct {
-	cli *capi.Client
-	kv  *capi.KV
+	cli     *capi.Client
+	kv      *capi.KV
+	session *capi.Session
 }
 
 func NewConfigConsulRepository() model.ConfigRepository {
@@ -47,75 +49,143 @@ func NewConfigConsulRepository() model.ConfigRepository {
 	}
 }
 
+func (c ConfigConsulRepository) SaveIdempotencyResult(ctx context.Context, key string, result interface{}, ttl time.Duration) error {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.SaveIdempotencyResult")
+	defer span.End()
+
+	sessionEntry := &capi.SessionEntry{
+		TTL:      ttl.String(),
+		Behavior: "delete",
+	}
+	sessionID, _, err := c.session.Create(sessionEntry, nil)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("failed to create session: %w", err)
+	}
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	_, err = c.kv.Put(&capi.KVPair{
+		Key:     idempotencyKey(key),
+		Value:   data,
+		Session: sessionID,
+	}, nil)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("failed to save idempotency result: %w", err)
+	}
+
+	return nil
+}
+
+func (c ConfigConsulRepository) GetByIdempotencyKey(ctx context.Context, key string) (*model.ConfigGroup, error) {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.GetByIdempotencyKey")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("idempotency.key", key))
+
+	kvPair, _, err := c.kv.Get(idempotencyKey(key), nil)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, fmt.Errorf("failed to get idempotency result: %w", err)
+	}
+
+	if kvPair == nil {
+		return nil, nil
+	}
+
+	var result model.ConfigGroup
+	err = json.Unmarshal(kvPair.Value, &result)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, fmt.Errorf("failed to unmarshal idempotency result: %w", err)
+	}
+
+	return &result, nil
+}
+
+func idempotencyKey(key string) string {
+	return "idempotency/" + key
+}
+
 func (c ConfigConsulRepository) Add(ctx context.Context, config model.Config) error {
-    _, span := consulTracer.Start(ctx, "ConfigConsulRepo.Add")
-    defer span.End()
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.Add")
+	defer span.End()
 
-    span.SetAttributes(
-        attribute.String("config.name", config.Name),
-        attribute.Int("config.version", config.Version),
-    )
+	span.SetAttributes(
+		attribute.String("config.name", config.Name),
+		attribute.Int("config.version", config.Version),
+	)
 
-    data, err := json.Marshal(config)
-    if err != nil {
-        span.RecordError(err)
-        span.SetStatus(codes.Error, err.Error())
-        return fmt.Errorf("failed to marshal config: %w", err)
-    }
+	data, err := json.Marshal(config)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
 
-    _, err = c.kv.Put(&capi.KVPair{Key: configKey(config.Name, config.Version), Value: data}, nil)
-    if err != nil {
-        span.RecordError(err)
-        span.SetStatus(codes.Error, err.Error())
-        return fmt.Errorf("failed to put config: %w", err)
-    }
+	_, err = c.kv.Put(&capi.KVPair{Key: configKey(config.Name, config.Version), Value: data}, nil)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("failed to put config: %w", err)
+	}
 
-    return nil
+	return nil
 }
 
 func (c ConfigConsulRepository) AddGroup(ctx context.Context, group model.ConfigGroup) error {
-    _, span := consulTracer.Start(ctx, "ConfigConsulRepo.AddGroup")
-    defer span.End()
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.AddGroup")
+	defer span.End()
 
-    span.SetAttributes(
-        attribute.String("group.name", group.Name),
-        attribute.Int("group.version", group.Version),
-        attribute.Int("group.configs_count", len(group.Configs)),
-    )
+	span.SetAttributes(
+		attribute.String("group.name", group.Name),
+		attribute.Int("group.version", group.Version),
+		attribute.Int("group.configs_count", len(group.Configs)),
+	)
 
-    groupForStorage := model.ConfigGroup{Name: group.Name, Version: group.Version, Configs: nil}
+	groupForStorage := model.ConfigGroup{Name: group.Name, Version: group.Version, Configs: nil}
 
-    groupData, err := json.Marshal(groupForStorage)
-    if err != nil {
-        span.RecordError(err)
-        span.SetStatus(codes.Error, err.Error())
-        return fmt.Errorf("failed to marshal group: %w", err)
-    }
+	groupData, err := json.Marshal(groupForStorage)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("failed to marshal group: %w", err)
+	}
 
-    _, err = c.kv.Put(&capi.KVPair{Key: groupKey(group.Name, group.Version), Value: groupData}, nil)
-    if err != nil {
-        span.RecordError(err)
-        span.SetStatus(codes.Error, err.Error())
-        return fmt.Errorf("failed to put group: %w", err)
-    }
+	_, err = c.kv.Put(&capi.KVPair{Key: groupKey(group.Name, group.Version), Value: groupData}, nil)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("failed to put group: %w", err)
+	}
 
-    for _, config := range group.Configs {
-        configData, err := json.Marshal(config)
-        if err != nil {
-            span.RecordError(err)
-            span.SetStatus(codes.Error, err.Error())
-            return fmt.Errorf("failed to marshal config inside group: %w", err)
-        }
+	for _, config := range group.Configs {
+		configData, err := json.Marshal(config)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return fmt.Errorf("failed to marshal config inside group: %w", err)
+		}
 
-        _, err = c.kv.Put(&capi.KVPair{Key: groupConfigKey(group.Name, group.Version, config), Value: configData}, nil)
-        if err != nil {
-            span.RecordError(err)
-            span.SetStatus(codes.Error, err.Error())
-            return fmt.Errorf("failed to put config inside group: %w", err)
-        }
-    }
+		_, err = c.kv.Put(&capi.KVPair{Key: groupConfigKey(group.Name, group.Version, config), Value: configData}, nil)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return fmt.Errorf("failed to put config inside group: %w", err)
+		}
+	}
 
-    return nil
+	return nil
 }
 
 func (c ConfigConsulRepository) DeleteByVersion(ctx context.Context, name string, version int) (model.Config, error) {

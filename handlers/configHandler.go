@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"projekat/services"
 	"strconv"
@@ -16,13 +17,13 @@ import (
 
 type ConfigHandler struct {
 	service services.ConfigService
-	tracer trace.Tracer
+	tracer  trace.Tracer
 }
 
 func NewConfigHandler(service services.ConfigService) ConfigHandler {
 	return ConfigHandler{
 		service: service,
-		tracer: otel.Tracer("config-handler"),
+		tracer:  otel.Tracer("config-handler"),
 	}
 }
 
@@ -41,7 +42,6 @@ func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 		attribute.String("config.version", version),
 	)
 
-
 	var params map[string]string
 
 	if err != nil {
@@ -51,6 +51,18 @@ func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	idempotencyKey := r.Header.Get("Idempotency-Key")
+	if idempotencyKey == "" {
+		span.RecordError(fmt.Errorf("missing Idempotency-Key header"))
+		span.SetStatus(codes.Error, "missing Idempotency-Key header")
+		http.Error(w, "Idemporency-Key header is required", http.StatusBadRequest)
+		return
+	}
+
+	span.SetAttributes(
+		attribute.String("idempotency.key", idempotencyKey),
+	)
+
 	err = json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
 		span.RecordError(err)
@@ -59,7 +71,7 @@ func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.service.Post(ctx, name, versionInt, params)
+	err = c.service.Post(ctx, name, versionInt, params, idempotencyKey)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to post config")

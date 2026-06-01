@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"projekat/model"
 	"projekat/services"
@@ -17,13 +18,13 @@ import (
 
 type ConfigGroupHandler struct {
 	service services.ConfigGroupService
-	tracer trace.Tracer
+	tracer  trace.Tracer
 }
 
 func NewConfigGroupHandler(service services.ConfigGroupService) ConfigGroupHandler {
 	return ConfigGroupHandler{
 		service: service,
-		tracer: otel.Tracer("config-handler"),
+		tracer:  otel.Tracer("config-handler"),
 	}
 }
 
@@ -49,6 +50,18 @@ func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	idempotencyKey := r.Header.Get("Idempotency-Key")
+	if idempotencyKey == "" {
+		span.RecordError(fmt.Errorf("missing Idempotency-Key header"))
+		span.SetStatus(codes.Error, "missing Idempotency-Key header")
+		http.Error(w, "Idempotency-Key header is required", http.StatusBadRequest)
+		return
+	}
+
+	span.SetAttributes(
+		attribute.String("idemporency.key", idempotencyKey),
+	)
+
 	var configs []model.Config
 
 	err = json.NewDecoder(r.Body).Decode(&configs)
@@ -59,7 +72,7 @@ func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.service.PostGroup(ctx, name, versionInt, configs)
+	err = c.service.PostGroup(ctx, name, versionInt, configs, idempotencyKey)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "Failed to post group")
@@ -148,7 +161,7 @@ func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 func (c ConfigGroupHandler) DeleteGroupByVersion(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteGroupByVersion")
-	defer span.End();
+	defer span.End()
 
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
@@ -304,7 +317,6 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	
 	labels := make(map[string]string)
 	for key, values := range r.URL.Query() {
 		if len(values) > 0 {
@@ -342,48 +354,48 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 
 // DELETE /configsGroup/{name}/{version}/search
 func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
-    
+
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteConfigsByLabels")
 	defer span.End()
 
 	name := mux.Vars(r)["name"]
-    version := mux.Vars(r)["version"]
-    versionInt, err := strconv.Atoi(version)
+	version := mux.Vars(r)["version"]
+	versionInt, err := strconv.Atoi(version)
 
 	span.SetAttributes(
 		attribute.String("group.name", name),
 		attribute.String("group.version", version),
 	)
 
-    if err != nil {
+	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to convert version ascii to int")
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-    labels := make(map[string]string)
-    for key, values := range r.URL.Query() {
-        if len(values) > 0 {
-            labels[key] = values[0]
-        }
-    }
+	labels := make(map[string]string)
+	for key, values := range r.URL.Query() {
+		if len(values) > 0 {
+			labels[key] = values[0]
+		}
+	}
 
-    if len(labels) == 0 {
+	if len(labels) == 0 {
 		span.SetStatus(codes.Error, "no labels provided in query parameters")
-        http.Error(w, "no labels provided in query parameters", http.StatusBadRequest)
-        return
-    }
+		http.Error(w, "no labels provided in query parameters", http.StatusBadRequest)
+		return
+	}
 
-    err = c.service.DeleteConfigsByLabels(ctx, name, versionInt, labels)
-    if err != nil {
+	err = c.service.DeleteConfigsByLabels(ctx, name, versionInt, labels)
+	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to delete configs by labels")
-        http.Error(w, err.Error(), http.StatusNotFound)
-        return
-    }
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 
 	span.SetStatus(codes.Ok, "configs inside the group deleted successfully")
 
-    w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 }
