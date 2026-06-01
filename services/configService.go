@@ -88,16 +88,61 @@ func (s *ConfigService) GetAll(ctx context.Context) (map[string]model.Config, er
 	return configs, nil
 }
 
-func (s *ConfigService) GetByName(name string) ([]model.Config, error) {
-	return s.repo.GetByName(name)
+func (s *ConfigService) GetByName(ctx context.Context, name string) ([]model.Config, error) {
+	ctx, span := s.tracer.Start(ctx, "ConfigService.GetByName")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("config.name", name),
+	)
+
+	config, err := s.repo.GetByName(ctx, name)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to get config by name")
+		return nil, err
+	}
+
+	span.SetStatus(codes.Ok, "config retrieved successfully by name")
+
+	return config, nil
 }
 
 func (s ConfigService) Put(
+	ctx context.Context,
 	config model.Config,
 	oldName string,
 	oldVersion int,
+	idempotencyKey string,
 ) error {
-	return s.repo.Put(config, oldName, oldVersion)
+	ctx, span := s.tracer.Start(ctx, "ConfigService.Put")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("config.name", config.Name),
+		attribute.Int("config.version", config.Version),
+		attribute.String("config.oldName", oldName),
+		attribute.Int("config.oldVersion", oldVersion),
+		attribute.String("idempotency.key", idempotencyKey),
+	)
+
+	existingConfig, err := s.repo.GetByIdempotencyKey(ctx, idempotencyKey)
+	if err == nil && existingConfig != nil {
+		span.AddEvent("Config already exists for this idempotency key - returning cached result")
+		span.SetStatus(codes.Ok, "config already exists")
+		return model.ErrConfigAlreadyExists
+	}
+
+	err = s.repo.Put(ctx, config, oldName, oldVersion)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to get config by name")
+		return nil
+	}
+
+	span.SetStatus(codes.Ok, "config updated successfully")
+
+	return nil
 }
 
 func (s *ConfigService) Post(ctx context.Context, name string, version int, params map[string]string, idempotencyKey string) error {

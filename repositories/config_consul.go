@@ -379,7 +379,7 @@ func (c ConfigConsulRepository) Get(ctx context.Context, name string, version in
 	return config, nil
 }
 
-func (c ConfigConsulRepository) GetByName(name string) ([]model.Config, error) {
+func (c ConfigConsulRepository) GetByName(ctx context.Context, name string) ([]model.Config, error) {
 
 	prefix := configPrefix + name + "/"
 
@@ -459,12 +459,15 @@ func (c ConfigConsulRepository) GetAll(ctx context.Context) (map[string]model.Co
 }
 
 func (c ConfigConsulRepository) Put(
+	ctx context.Context,
 	config model.Config,
 	oldName string,
 	oldVersion int,
 ) error {
+	_, span := consulTracer.Start(ctx, "ConfigConsulRepo.Put")
+	defer span.End()
 
-	oldConfig, err := c.Get(oldName, oldVersion)
+	oldConfig, err := c.Get(ctx, oldName, oldVersion)
 	if err != nil {
 		return err
 	}
