@@ -62,6 +62,29 @@ func (r *ConfigInMem) GetByName(name string) ([]model.Config, error) {
 
 	return configs, nil
 }
+func (r *ConfigInMem) Put(
+	config model.Config,
+	oldName string,
+	oldVersion int,
+) error {
+
+	oldKey := oldName + "_" + strconv.Itoa(oldVersion)
+
+	_, exists := r.configs[oldKey]
+	if !exists {
+		return errors.New("config not found")
+	}
+
+	newKey := config.Name + "_" + strconv.Itoa(config.Version)
+
+	r.configs[newKey] = config
+
+	if oldKey != newKey {
+		delete(r.configs, oldKey)
+	}
+
+	return nil
+}
 
 func (r *ConfigInMem) GetAll() (
 	map[string]model.Config,

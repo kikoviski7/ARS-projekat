@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	capi "github.com/hashicorp/consul/api"
 )
 
@@ -49,29 +50,37 @@ func NewConfigConsulRepository() model.ConfigRepository {
 
 func (c ConfigConsulRepository) Add(config model.Config) {
 
+	if config.ID == uuid.Nil {
+		config.ID = uuid.New()
+	}
+
 	data, err := json.Marshal(config)
 	if err != nil {
-		fmt.Println("failed to marshal in put config: %w", err)
+		fmt.Println("failed to marshal in put config:", err)
+		return
 	}
 
 	key := configKey(config.Name, config.Version)
 
-	//key-value entry reprezentacija u consul-u
 	pair := &capi.KVPair{
 		Key:   key,
 		Value: data,
 	}
 
-	//PUT poziv ka bazi
 	_, err = c.kv.Put(pair, nil)
 	if err != nil {
-		fmt.Println("failed to put config: %w", err)
+		fmt.Println("failed to put config:", err)
 	}
 }
 
 func (c ConfigConsulRepository) AddGroup(group model.ConfigGroup) {
 
+	if group.ID == uuid.Nil {
+		group.ID = uuid.New()
+	}
+
 	groupForStorage := model.ConfigGroup{
+		ID:      group.ID,
 		Name:    group.Name,
 		Version: group.Version,
 		Configs: nil,
@@ -95,6 +104,10 @@ func (c ConfigConsulRepository) AddGroup(group model.ConfigGroup) {
 	}
 
 	for _, config := range group.Configs {
+		if config.ID == uuid.Nil {
+			config.ID = uuid.New()
+		}
+
 		configData, err := json.Marshal(config)
 		if err != nil {
 			fmt.Println("failed to marshal config inside group:", err)
@@ -290,6 +303,49 @@ func (c ConfigConsulRepository) GetAll() (map[string]model.Config, error) {
 	return configs, nil
 }
 
+func (c ConfigConsulRepository) Put(
+	config model.Config,
+	oldName string,
+	oldVersion int,
+) error {
+
+	oldConfig, err := c.Get(oldName, oldVersion)
+	if err != nil {
+		return err
+	}
+
+	if config.ID == uuid.Nil {
+		config.ID = oldConfig.ID
+	}
+
+	oldKey := configKey(oldName, oldVersion)
+	newKey := configKey(config.Name, config.Version)
+
+	data, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	pair := &capi.KVPair{
+		Key:   newKey,
+		Value: data,
+	}
+
+	_, err = c.kv.Put(pair, nil)
+	if err != nil {
+		return fmt.Errorf("failed to put config in consul: %w", err)
+	}
+
+	if oldKey != newKey {
+		_, err = c.kv.Delete(oldKey, nil)
+		if err != nil {
+			return fmt.Errorf("failed to delete old config from consul: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func (c ConfigConsulRepository) GetAllGroups() (map[string]model.ConfigGroup, error) {
 
 	pairs, _, err := c.kv.List(groupPrefix, nil)
@@ -398,9 +454,13 @@ func (c ConfigConsulRepository) PutGroup(
 	oldVersion int,
 ) error {
 
-	_, err := c.GetGroup(oldName, oldVersion)
+	oldGroup, err := c.GetGroup(oldName, oldVersion)
 	if err != nil {
 		return err
+	}
+
+	if group.ID == uuid.Nil {
+		group.ID = oldGroup.ID
 	}
 
 	oldKey := groupKey(oldName, oldVersion)
@@ -424,6 +484,7 @@ func (c ConfigConsulRepository) PutGroup(
 	}
 
 	groupForStorage := model.ConfigGroup{
+		ID:      group.ID,
 		Name:    group.Name,
 		Version: group.Version,
 		Configs: nil,
@@ -445,6 +506,10 @@ func (c ConfigConsulRepository) PutGroup(
 	}
 
 	for _, config := range group.Configs {
+		if config.ID == uuid.Nil {
+			config.ID = uuid.New()
+		}
+
 		configData, err := json.Marshal(config)
 		if err != nil {
 			return fmt.Errorf("failed to marshal grouped config: %w", err)
@@ -465,9 +530,13 @@ func (c ConfigConsulRepository) PutGroup(
 }
 func (c ConfigConsulRepository) UpdateGroup(group model.ConfigGroup) error {
 
-	_, err := c.GetGroup(group.Name, group.Version)
+	oldGroup, err := c.GetGroup(group.Name, group.Version)
 	if err != nil {
 		return err
+	}
+
+	if group.ID == uuid.Nil {
+		group.ID = oldGroup.ID
 	}
 
 	_, err = c.kv.DeleteTree(groupPrefixKey(group.Name, group.Version), nil)
@@ -476,6 +545,7 @@ func (c ConfigConsulRepository) UpdateGroup(group model.ConfigGroup) error {
 	}
 
 	groupForStorage := model.ConfigGroup{
+		ID:      group.ID,
 		Name:    group.Name,
 		Version: group.Version,
 		Configs: nil,
@@ -497,6 +567,10 @@ func (c ConfigConsulRepository) UpdateGroup(group model.ConfigGroup) error {
 	}
 
 	for _, config := range group.Configs {
+		if config.ID == uuid.Nil {
+			config.ID = uuid.New()
+		}
+
 		configData, err := json.Marshal(config)
 		if err != nil {
 			return fmt.Errorf("failed to marshal grouped config: %w", err)

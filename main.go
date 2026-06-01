@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"projekat/handlers"
 	"projekat/middleware"
-	"projekat/model"
 	"projekat/repositories"
 	"projekat/services"
 	"time"
@@ -21,16 +20,6 @@ func main() {
 	consulRepo := repositories.NewConfigConsulRepository()
 	service := services.NewConfigService(consulRepo)
 	groupService := services.NewConfigGroupService(consulRepo)
-	config := model.Config{
-		Name:    "db_config",
-		Version: 1,
-		Params: map[string]string{
-			"name":     "mare",
-			"password": "marejetata123",
-		},
-	}
-
-	service.Add(config)
 	handler := handlers.NewConfigHandler(service)
 	groupHandler := handlers.NewConfigGroupHandler(groupService)
 
@@ -40,6 +29,7 @@ func main() {
 	router.HandleFunc("/configs/{name}", handler.GetByName).Methods("GET")
 	router.HandleFunc("/configs", handler.GetAll).Methods("GET")
 	router.HandleFunc("/configs/{name}/{version}", handler.Post).Methods("POST")
+	router.HandleFunc("/configs/{name}/{version}", handler.Put).Methods("PUT")
 	router.HandleFunc("/configs/{name}/{version}", handler.DeleteByVersion).Methods("DELETE")
 
 	router.HandleFunc("/configsGroup/{name}/{version}", groupHandler.GetGroup).Methods("GET")

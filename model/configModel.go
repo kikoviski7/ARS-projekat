@@ -1,6 +1,9 @@
 package model
 
+import "github.com/google/uuid"
+
 type Config struct {
+	ID      uuid.UUID         `json:"id"`
 	Name    string            `json:"name"`
 	Params  map[string]string `json:"params"`
 	Version int               `json:"version"`
@@ -8,9 +11,10 @@ type Config struct {
 }
 
 type ConfigGroup struct {
-	Name    string   `json:"name"`
-	Configs []Config `json:"configs"`
-	Version int      `json:"version"`
+	ID      uuid.UUID `json:"id"`
+	Name    string    `json:"name"`
+	Configs []Config  `json:"configs"`
+	Version int       `json:"version"`
 }
 
 type ConfigRepository interface {
@@ -19,6 +23,7 @@ type ConfigRepository interface {
 	GetByName(name string) ([]Config, error)
 	GetAll() (map[string]Config, error)
 	DeleteByVersion(name string, version int) (Config, error)
+	Put(config Config, oldName string, oldVersion int) error
 
 	AddGroup(configGroup ConfigGroup)
 	GetGroup(name string, version int) (ConfigGroup, error)

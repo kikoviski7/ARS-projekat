@@ -30,6 +30,14 @@ func (s ConfigService) GetAll() (map[string]model.Config, error) {
 	return s.repo.GetAll()
 }
 
+func (s ConfigService) Put(
+	config model.Config,
+	oldName string,
+	oldVersion int,
+) error {
+	return s.repo.Put(config, oldName, oldVersion)
+}
+
 func (s ConfigService) Post(name string, version int, params map[string]string) error {
 	config := model.Config{
 		Name:    name,
@@ -41,6 +49,6 @@ func (s ConfigService) Post(name string, version int, params map[string]string) 
 }
 
 func (s ConfigService) DeleteByVerison(name string, version int) error {
-	s.repo.DeleteByVersion(name, version)
-	return nil
+	_, err := s.repo.DeleteByVersion(name, version)
+	return err
 }

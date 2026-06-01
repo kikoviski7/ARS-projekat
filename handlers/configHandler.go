@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"projekat/model"
 	"projekat/services"
 	"strconv"
 
@@ -143,4 +144,46 @@ func (c ConfigHandler) DeleteByVersion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (c ConfigHandler) Put(w http.ResponseWriter, r *http.Request) {
+	// dobavi stari naziv i verziju
+	oldName := mux.Vars(r)["name"]
+	oldVersion := mux.Vars(r)["version"]
+
+	oldVersionInt, err := strconv.Atoi(oldVersion)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// procitaj body
+	var config model.Config
+
+	err = json.NewDecoder(r.Body).Decode(&config)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// pozovi servis metodu
+	err = c.service.Put(config, oldName, oldVersionInt)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// vrati odgovor
+	resp, err := json.Marshal(config)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(resp)
 }
