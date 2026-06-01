@@ -34,8 +34,8 @@ type ConfigRepository interface {
 	GetAll(ctx context.Context) (map[string]Config, error)
 	DeleteByVersion(ctx context.Context, name string, version int) (Config, error)
 
-	Put(config Config, oldName string, oldVersion int) error
-	GetByName(name string) ([]Config, error)
+	Put(ctx context.Context, config Config, oldName string, oldVersion int) error
+	GetByName(ctx context.Context, name string) ([]Config, error)
 
 	AddGroup(ctx context.Context, configGroup ConfigGroup) error
 	GetGroup(ctx context.Context, name string, version int) (ConfigGroup, error)
