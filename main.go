@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
 	//"go.opentelemetry.io/otel/exporters/jaeger/otlp"
 	//"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -26,14 +27,14 @@ import (
 func main() {
 
 	tp, err := initTracer()
-	if err != nil{
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize tracer: %v\n", err)
 		os.Exit(1)
 	}
 
 	otel.SetTracerProvider(tp)
 
-	defer func(){
+	defer func() {
 		if err := tp.ForceFlush(context.Background()); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to flush tracer: %v\n", err)
 		}
@@ -43,9 +44,10 @@ func main() {
 	}()
 
 	consulRepo := repositories.NewConfigConsulRepository()
+
 	service := services.NewConfigService(consulRepo)
 	groupService := services.NewConfigGroupService(consulRepo)
-	
+
 	handler := handlers.NewConfigHandler(service)
 	groupHandler := handlers.NewConfigGroupHandler(groupService)
 
@@ -108,10 +110,10 @@ func initTracer() (*sdktrace.TracerProvider, error) {
 	ctx := context.Background()
 
 	exporter, err := otlptracegrpc.New(ctx,
-    	otlptracegrpc.WithEndpoint("jaeger:4317"),
-    	otlptracegrpc.WithInsecure(),
+		otlptracegrpc.WithEndpoint("jaeger:4317"),
+		otlptracegrpc.WithInsecure(),
 	)
-	
+
 	/*exporter, err := jaeger.New(
 		jaeger.WithCollectorEndpoint(
 			jaeger.WithEndpoint(os.Getenv("JAEGER_ENDPOINT")+"/api/traces"),

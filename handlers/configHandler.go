@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"projekat/model"
 	"projekat/services"
 	"strconv"
 
@@ -55,7 +57,7 @@ func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 	if idempotencyKey == "" {
 		span.RecordError(fmt.Errorf("missing Idempotency-Key header"))
 		span.SetStatus(codes.Error, "missing Idempotency-Key header")
-		http.Error(w, "Idemporency-Key header is required", http.StatusBadRequest)
+		http.Error(w, "Idempotency-Key header is required", http.StatusBadRequest)
 		return
 	}
 
@@ -73,6 +75,10 @@ func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 
 	err = c.service.Post(ctx, name, versionInt, params, idempotencyKey)
 	if err != nil {
+		if errors.Is(err, model.ErrConfigAlreadyExists) {
+			http.Error(w, "config already exists", http.StatusConflict)
+			return
+		}
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to post config")
 		http.Error(w, err.Error(), http.StatusInternalServerError)

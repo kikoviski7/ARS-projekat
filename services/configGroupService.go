@@ -99,7 +99,7 @@ func (s ConfigGroupService) PostGroup(
 	if err == nil && existingGroup != nil {
 		span.AddEvent("Group already exists for this idempotency keys - returning cached result")
 		span.SetStatus(codes.Ok, "group already exists")
-		return nil
+		return model.ErrGroupAlreadyExists
 	}
 
 	group := model.ConfigGroup{

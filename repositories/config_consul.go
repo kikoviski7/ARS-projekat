@@ -44,8 +44,9 @@ func NewConfigConsulRepository() model.ConfigRepository {
 		fmt.Println("connection to client database failed: %w", err)
 	}
 	return ConfigConsulRepository{
-		cli: cli,
-		kv:  cli.KV(),
+		cli:     cli,
+		kv:      cli.KV(),
+		session: cli.Session(),
 	}
 }
 
@@ -71,7 +72,7 @@ func (c ConfigConsulRepository) SaveIdempotencyResult(ctx context.Context, key s
 		return fmt.Errorf("failed to marshal result: %w", err)
 	}
 
-	_, err = c.kv.Put(&capi.KVPair{
+	acquired, _, err := c.kv.Acquire(&capi.KVPair{
 		Key:     idempotencyKey(key),
 		Value:   data,
 		Session: sessionID,
@@ -81,6 +82,20 @@ func (c ConfigConsulRepository) SaveIdempotencyResult(ctx context.Context, key s
 		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("failed to save idempotency result: %w", err)
 	}
+	if !acquired {
+		return fmt.Errorf("failed to acquire lock for idempotency key")
+	}
+
+	/*_, err = c.kv.Put(&capi.KVPair{
+		Key:     idempotencyKey(key),
+		Value:   data,
+		Session: sessionID,
+	}, nil)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("failed to save idempotency result: %w", err)
+	}*/
 
 	return nil
 }

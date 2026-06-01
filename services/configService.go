@@ -101,9 +101,9 @@ func (s *ConfigService) Post(ctx context.Context, name string, version int, para
 
 	existingConfig, err := s.repo.GetByIdempotencyKey(ctx, idempotencyKey)
 	if err == nil && existingConfig != nil {
-		span.AddEvent("Group already exists for this idempotency key - returning cached result")
-		span.SetStatus(codes.Ok, "group already exists")
-		return nil
+		span.AddEvent("Config already exists for this idempotency key - returning cached result")
+		span.SetStatus(codes.Ok, "config already exists")
+		return model.ErrConfigAlreadyExists
 	}
 
 	config := model.Config{

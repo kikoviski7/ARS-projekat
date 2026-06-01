@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"projekat/model"
@@ -59,7 +60,7 @@ func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	span.SetAttributes(
-		attribute.String("idemporency.key", idempotencyKey),
+		attribute.String("idempotency.key", idempotencyKey),
 	)
 
 	var configs []model.Config
@@ -74,13 +75,17 @@ func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 
 	err = c.service.PostGroup(ctx, name, versionInt, configs, idempotencyKey)
 	if err != nil {
+		if errors.Is(err, model.ErrGroupAlreadyExists) {
+			http.Error(w, "group already exists", http.StatusConflict)
+			return
+		}
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "Failed to post group")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	span.SetStatus(codes.Ok, "config posted successfully")
+	span.SetStatus(codes.Ok, "group posted successfully")
 
 	w.WriteHeader(http.StatusCreated)
 }

@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -39,3 +40,6 @@ type ConfigRepository interface {
 	GetConfigsByLabels(ctx context.Context, name string, version int, labels map[string]string) ([]Config, error)
 	DeleteConfigsByLabels(ctx context.Context, name string, version int, labels map[string]string) error
 }
+
+var ErrConfigAlreadyExists = errors.New("config already exists")
+var ErrGroupAlreadyExists = errors.New("group already exists")
