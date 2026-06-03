@@ -13,9 +13,6 @@ Servis služi za kreiranje, čuvanje i prikaz konfiguracija. Konfiguracije su op
 
 Sistem je REST API koji je napisan u Golang 1.25, podaci o konfiguracijama i grupama se čuvaju u HashiCorp Consul KV bazi podataka, servis i baza podataka su kontejnerizovani u Dockeru, a sistem je orkestriran putem docker-compose alata.
 
-# Arhitektura sistema
-
-// TODO
 
 # Pokretanje sistema
 
