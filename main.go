@@ -16,14 +16,15 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-
-	//"go.opentelemetry.io/otel/exporters/jaeger/otlp"
-	//"go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 )
 
+// @title Config Service API
+// @version 1.0
+// @host localhost:8000
+// @description This is a Config Service API.
 func main() {
 
 	tp, err := initTracer()

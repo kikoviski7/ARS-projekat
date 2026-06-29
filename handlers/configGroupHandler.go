@@ -29,7 +29,12 @@ func NewConfigGroupHandler(service services.ConfigGroupService) ConfigGroupHandl
 	}
 }
 
-// POST /groups/{name}/{version}
+// @Summary POST add group
+// @Description Kreira novu grupu sa tim nazivom i tom verzijom.
+// @Tags groups
+// @Success 201
+// @Failure 409
+// @Router /configsGroup/{name}/{version} [post]
 func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.PostGroup")
@@ -90,7 +95,13 @@ func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// GET /groups
+// @Summary GET all groups
+// @Description Dobavlja sve grupe u sistemu sa njihovim konfiguracijama.
+// @Tags groups
+// @Produce json
+// @Success 200 {object} []ConfigGroup
+// @Failure 404
+// @Router /configsGroup/ [get]
 func (c ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.GetAllGroups")
@@ -118,7 +129,13 @@ func (c ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request)
 	w.Write(resp)
 }
 
-// GET /groups/{name}/{version}
+// @Summary GET group by name and version
+// @Description Vraća grupu sa tim {name} i tim {version}.
+// @Tags groups
+// @Produce json
+// @Success 200 {object} ConfigGroup
+// @Failure 404
+// @Router /configsGroup/{name}/{version} [get]
 func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.GetGroup")
@@ -162,7 +179,12 @@ func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-// DELETE /groups/{name}/{version}
+// @Summary DELETE group by name and version
+// @Description Briše grupu sa tim {name} i tim {version}.
+// @Tags groups
+// @Success 204
+// @Failure 404
+// @Router /configsGroup/{name}/{version} [delete]
 func (c ConfigGroupHandler) DeleteGroupByVersion(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteGroupByVersion")
@@ -197,7 +219,7 @@ func (c ConfigGroupHandler) DeleteGroupByVersion(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// DELETE /groups/{groupName}/{groupVersion}/configs/{configName}/{configVersion}
+// KOTAŠIN SPAGHETTI
 func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler")
@@ -255,7 +277,14 @@ func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// PUT /groups/{name}/{version}
+// @Summary PUT add config to group
+// @Description Dodaje postojeću konfiguraciju sa tim nazivom i verzijom u grupu sa svojim nazivom i verzijom
+// @Tags groups
+// @Accept  json
+// @Param  body body model.Config true "Config parameters"
+// @Success 200
+// @Failure 404
+// @Router /configsGroup/{name}/{version} [put]
 func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.PutGroup")
@@ -300,7 +329,13 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// GET /configsGroup/{name}/{version}/search
+// @Summary GET all configs in group by labels
+// @Description Vraća sve konfiguracije u datoj grupi prema navedenim labelama.
+// @Tags groups
+// @Produce json
+// @Success 200 {object} []Config
+// @Failure 404
+// @Router /configsGroup/{name}/{version}/label1=value1|label2=value2 [get]
 func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.GetConfigsByLabels")
@@ -357,7 +392,12 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 	w.Write(resp)
 }
 
-// DELETE /configsGroup/{name}/{version}/search
+// @Summary DELETE remove config from group by labels
+// @Description Briše sve konfiguracije u datoj grupi prema navedenim labelama.
+// @Tags groups
+// @Success 204
+// @Failure 404
+// @Router /configsGroup/{name}/{version}/label1=value1|label2=value2 [delete]
 func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteConfigsByLabels")

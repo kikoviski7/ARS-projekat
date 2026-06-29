@@ -29,7 +29,14 @@ func NewConfigHandler(service services.ConfigService) ConfigHandler {
 	}
 }
 
-// POST /configs/{name}/{version}
+// @Summary POST add config
+// @Description Kreira konfiguraciju sa zadatim nazivom i verzijom.
+// @Tags configs
+// @Accept  json
+// @Param  body body map[string]string false "Config parameters"
+// @Success 201
+// @Failure 409
+// @Router /configs/{name}/{version} [post]
 func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigHandler.Post")
@@ -91,6 +98,13 @@ func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// @Summary GET all configs
+// @Description Dobavlja sve konfiguracije u sistemu.
+// @Tags configs
+// @Produce json
+// @Success 200 {object} []Config
+// @Failure 500
+// @Router /configs/ [get]
 func (c ConfigHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigHandler.GetAll")
@@ -119,6 +133,13 @@ func (c ConfigHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// @Summary GET config by name
+// @Description Vraća sve verzije jedne konfiguracije.
+// @Tags configs
+// @Produce json
+// @Success 200 {object} Config
+// @Failure 404
+// @Router /configs/{name} [get]
 func (c ConfigHandler) GetByName(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigHandler.GetByName")
@@ -150,7 +171,13 @@ func (c ConfigHandler) GetByName(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-// GET /configs/{name}/{version}
+// @Summary GET config by name and version
+// @Description Vraća konfiguraciju sa tim {name} i tim {version}.
+// @Tags configs
+// @Produce json
+// @Success 200 {object} Config
+// @Failure 404
+// @Router /configs/{name}/{version} [get]
 func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigHandler.Get")
@@ -196,6 +223,12 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// @Summary DELETE config by name and version
+// @Description Briše konfiguraciju sa tim {name} i tim {version}.
+// @Tags configs
+// @Success 204
+// @Failure 404
+// @Router /configs/{name}/{version} [delete]
 func (c ConfigHandler) DeleteByVersion(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigHandler.DeleteByVersion")
@@ -230,6 +263,14 @@ func (c ConfigHandler) DeleteByVersion(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary PUT edit config
+// @Description Menja konfiguraciju pod tim nazivom i verzijom
+// @Tags configs
+// @Accept  json
+// @Param "" body map[string]string false "Config parameters"
+// @Success 200
+// @Failure 404
+// @Router /configs/{name}/{version} [put]
 func (c ConfigHandler) Put(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigHandler.DeleteByVersion")

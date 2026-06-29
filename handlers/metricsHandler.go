@@ -15,6 +15,7 @@ type MetricsResponse struct {
 	RequestsPerMinute     map[string]float64 `json:"requests_per_minute"`
 }
 
+
 func GetMetrics(w http.ResponseWriter, r *http.Request) {
 
 	response := MetricsResponse{
