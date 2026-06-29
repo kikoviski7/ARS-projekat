@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"projekat/metrics"
+	"projekat/handlers"
 )
 
 type responseWriter struct {
@@ -17,7 +17,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-func MetricsMiddleware(next http.Handler) http.Handler {
+func MetricsMiddleware(next http.Handler, metricsCollector *handlers.MetricsResponse) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		start := time.Now()
@@ -31,7 +31,8 @@ func MetricsMiddleware(next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		metrics.Record(
+		metricsCollector.RecordRequest(
+			r.Method,
 			r.URL.Path,
 			rw.statusCode,
 			duration,

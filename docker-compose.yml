@@ -35,3 +35,20 @@ services:
       - COLLECTOR_OTLP_ENABLED=true
       - LOG_LEVEL=info
     restart: always
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    user: root
+    depends_on:
+      - api
+
+volumes:
+  prometheus-data:

@@ -16,12 +16,11 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
-	//"go.opentelemetry.io/otel/exporters/jaeger/otlp"
-	//"go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -49,9 +48,9 @@ func main() {
 	groupService := services.NewConfigGroupService(consulRepo)
 	handler := handlers.NewConfigHandler(service)
 	groupHandler := handlers.NewConfigGroupHandler(groupService)
+	metricsCollector := handlers.NewMetrics()
 
 	router := mux.NewRouter()
-
 	router.Use(middleware.TracingMiddleware)
 
 	router.HandleFunc("/configs/{name}/{version}", handler.Get).Methods("GET")
@@ -70,18 +69,16 @@ func main() {
 
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.GetConfigsByLabels).Methods("GET")
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.DeleteConfigsByLabels).Methods("DELETE")
+	router.Handle("/metrics", promhttp.Handler())
 
-	router.HandleFunc("/metrics", handlers.GetMetrics)
 	router.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello"))
 	})
 
-	http.Handle("/metrics", http.HandlerFunc(handlers.GetMetrics))
-
 	rateLimiter := middleware.NewRateLimiter(100, 10)
 	router.Use(rateLimiter.Middleware)
 
-	metricsHandler := middleware.MetricsMiddleware(router)
+	metricsHandler := middleware.MetricsMiddleware(router, metricsCollector)
 
 	server := &http.Server{
 		Addr:    ":8000",
@@ -116,11 +113,6 @@ func initTracer() (*sdktrace.TracerProvider, error) {
 		otlptracegrpc.WithInsecure(),
 	)
 
-	/*exporter, err := jaeger.New(
-		jaeger.WithCollectorEndpoint(
-			jaeger.WithEndpoint(os.Getenv("JAEGER_ENDPOINT")+"/api/traces"),
-		),
-	)*/
 	if err != nil {
 		return nil, err
 	}
