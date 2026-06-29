@@ -1,0 +1,45 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a Config Service API.",
+        "title": "Config Service API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8000",
+    "paths": {
+        "/configs/{name}/{version}": {
+            "post": {
+                "description": "Kreira konfiguraciju sa zadatim nazivom i verzijom.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "Kreiraj konfiguraciju",
+                "parameters": [
+                    {
+                        "description": "Config parameters",
+                        "name": "\"\"",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        }
+    }
+}

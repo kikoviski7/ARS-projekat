@@ -23,6 +23,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// @title Config Service API
+// @version 1.0
+// @host localhost:8000
+// @description This is a Config Service API.
 func main() {
 
 	tp, err := initTracer()

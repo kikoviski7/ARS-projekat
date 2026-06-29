@@ -1,0 +1,29 @@
+host: localhost:8000
+info:
+  contact: {}
+  description: This is a Config Service API.
+  title: Config Service API
+  version: "1.0"
+paths:
+  /configs/{name}/{version}:
+    post:
+      consumes:
+      - application/json
+      description: Kreira konfiguraciju sa zadatim nazivom i verzijom.
+      parameters:
+      - description: Config parameters
+        in: body
+        name: '""'
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+      summary: Kreiraj konfiguraciju
+      tags:
+      - configs
+swagger: "2.0"
