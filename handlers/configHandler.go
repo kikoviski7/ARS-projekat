@@ -102,7 +102,7 @@ func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 // @Description Dobavlja sve konfiguracije u sistemu.
 // @Tags configs
 // @Produce json
-// @Success 200 {object} []Config
+// @Success 200 {object} []model.Config
 // @Failure 500
 // @Router /configs/ [get]
 func (c ConfigHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +137,7 @@ func (c ConfigHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 // @Description Vraća sve verzije jedne konfiguracije.
 // @Tags configs
 // @Produce json
-// @Success 200 {object} Config
+// @Success 200 {object} model.Config
 // @Failure 404
 // @Router /configs/{name} [get]
 func (c ConfigHandler) GetByName(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +175,7 @@ func (c ConfigHandler) GetByName(w http.ResponseWriter, r *http.Request) {
 // @Description Vraća konfiguraciju sa tim {name} i tim {version}.
 // @Tags configs
 // @Produce json
-// @Success 200 {object} Config
+// @Success 200 {object} model.Config
 // @Failure 404
 // @Router /configs/{name}/{version} [get]
 func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {

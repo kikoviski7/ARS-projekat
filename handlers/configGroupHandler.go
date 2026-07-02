@@ -99,7 +99,7 @@ func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 // @Description Dobavlja sve grupe u sistemu sa njihovim konfiguracijama.
 // @Tags groups
 // @Produce json
-// @Success 200 {object} []ConfigGroup
+// @Success 200 {object} []model.ConfigGroup
 // @Failure 404
 // @Router /configsGroup/ [get]
 func (c ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +133,7 @@ func (c ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request)
 // @Description Vraća grupu sa tim {name} i tim {version}.
 // @Tags groups
 // @Produce json
-// @Success 200 {object} ConfigGroup
+// @Success 200 {object} model.ConfigGroup
 // @Failure 404
 // @Router /configsGroup/{name}/{version} [get]
 func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
@@ -333,9 +333,9 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 // @Description Vraća sve konfiguracije u datoj grupi prema navedenim labelama.
 // @Tags groups
 // @Produce json
-// @Success 200 {object} []Config
+// @Success 200 {object} []model.Config
 // @Failure 404
-// @Router /configsGroup/{name}/{version}/label1=value1|label2=value2 [get]
+// @Router /configsGroup/{name}/{version}/{labels} [get]
 func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.GetConfigsByLabels")
@@ -395,9 +395,10 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 // @Summary DELETE remove config from group by labels
 // @Description Briše sve konfiguracije u datoj grupi prema navedenim labelama.
 // @Tags groups
+// @Param labels path string true "Key-value pairs of labels to filter configs, e.g. label1=value1|label2=value2"
 // @Success 204
 // @Failure 404
-// @Router /configsGroup/{name}/{version}/label1=value1|label2=value2 [delete]
+// @Router /configsGroup/{name}/{version}/{labels} [delete]
 func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteConfigsByLabels")

@@ -1,3 +1,34 @@
+definitions:
+  model.Config:
+    properties:
+      id:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      params:
+        additionalProperties:
+          type: string
+        type: object
+      version:
+        type: integer
+    type: object
+  model.ConfigGroup:
+    properties:
+      configs:
+        items:
+          $ref: '#/definitions/model.Config'
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      version:
+        type: integer
+    type: object
 host: localhost:8000
 info:
   contact: {}
@@ -5,11 +36,87 @@ info:
   title: Config Service API
   version: "1.0"
 paths:
+  /configs/:
+    get:
+      description: Dobavlja sve konfiguracije u sistemu.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Config'
+            type: array
+        "500":
+          description: Internal Server Error
+      summary: GET all configs
+      tags:
+      - configs
+  /configs/{name}:
+    get:
+      description: Vraća sve verzije jedne konfiguracije.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Config'
+        "404":
+          description: Not Found
+      summary: GET config by name
+      tags:
+      - configs
   /configs/{name}/{version}:
+    delete:
+      description: Briše konfiguraciju sa tim {name} i tim {version}.
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+      summary: DELETE config by name and version
+      tags:
+      - configs
+    get:
+      description: Vraća konfiguraciju sa tim {name} i tim {version}.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Config'
+        "404":
+          description: Not Found
+      summary: GET config by name and version
+      tags:
+      - configs
     post:
       consumes:
       - application/json
       description: Kreira konfiguraciju sa zadatim nazivom i verzijom.
+      parameters:
+      - description: Config parameters
+        in: body
+        name: body
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      responses:
+        "201":
+          description: Created
+        "409":
+          description: Conflict
+      summary: POST add config
+      tags:
+      - configs
+    put:
+      consumes:
+      - application/json
+      description: Menja konfiguraciju pod tim nazivom i verzijom
       parameters:
       - description: Config parameters
         in: body
@@ -23,7 +130,112 @@ paths:
           description: OK
         "404":
           description: Not Found
-      summary: Kreiraj konfiguraciju
+      summary: PUT edit config
       tags:
       - configs
+  /configsGroup/:
+    get:
+      description: Dobavlja sve grupe u sistemu sa njihovim konfiguracijama.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.ConfigGroup'
+            type: array
+        "404":
+          description: Not Found
+      summary: GET all groups
+      tags:
+      - groups
+  /configsGroup/{name}/{version}:
+    delete:
+      description: Briše grupu sa tim {name} i tim {version}.
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+      summary: DELETE group by name and version
+      tags:
+      - groups
+    get:
+      description: Vraća grupu sa tim {name} i tim {version}.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ConfigGroup'
+        "404":
+          description: Not Found
+      summary: GET group by name and version
+      tags:
+      - groups
+    post:
+      description: Kreira novu grupu sa tim nazivom i tom verzijom.
+      responses:
+        "201":
+          description: Created
+        "409":
+          description: Conflict
+      summary: POST add group
+      tags:
+      - groups
+    put:
+      consumes:
+      - application/json
+      description: Dodaje postojeću konfiguraciju sa tim nazivom i verzijom u grupu
+        sa svojim nazivom i verzijom
+      parameters:
+      - description: Config parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.Config'
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+      summary: PUT add config to group
+      tags:
+      - groups
+  /configsGroup/{name}/{version}/{labels}:
+    delete:
+      description: Briše sve konfiguracije u datoj grupi prema navedenim labelama.
+      parameters:
+      - description: Key-value pairs of labels to filter configs, e.g. label1=value1|label2=value2
+        in: path
+        name: labels
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+      summary: DELETE remove config from group by labels
+      tags:
+      - groups
+    get:
+      description: Vraća sve konfiguracije u datoj grupi prema navedenim labelama.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Config'
+            type: array
+        "404":
+          description: Not Found
+      summary: GET all configs in group by labels
+      tags:
+      - groups
 swagger: "2.0"

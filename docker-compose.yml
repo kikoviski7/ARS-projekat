@@ -1,8 +1,10 @@
-version: '3.9'
+volumes:
+  prometheus-data:
+
 services:
   api:
     build: .
-    # image: ars-api:latest
+    # image: zoricjovanftn/projekat:latest
     container_name: ars-api
     ports:
       - "8000:8000"
@@ -51,9 +53,6 @@ services:
     depends_on:
       - api
 
-volumes:
-  prometheus-data:
-  
   swagger-ui:
     image: swaggerapi/swagger-ui
     container_name: swagger-ui
@@ -66,4 +65,5 @@ volumes:
         - path: docs
           action: restart
     volumes:
-      - ./docs/swagger.yaml:/api/swagger.yaml:ro
+        - ./docs/swagger.yaml:/api/swagger.yaml:ro
+
