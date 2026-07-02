@@ -8,7 +8,7 @@
     },
     "host": "localhost:8000",
     "paths": {
-        "/configs/": {
+        "/configs": {
             "get": {
                 "description": "Dobavlja sve konfiguracije u sistemu.",
                 "produces": [
@@ -157,7 +157,7 @@
                 }
             }
         },
-        "/configsGroup/": {
+        "/configsGroup": {
             "get": {
                 "description": "Dobavlja sve grupe u sistemu sa njihovim konfiguracijama.",
                 "produces": [

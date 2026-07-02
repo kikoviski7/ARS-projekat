@@ -101,7 +101,7 @@ func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {object} []model.ConfigGroup
 // @Failure 404
-// @Router /configsGroup/ [get]
+// @Router /configsGroup [get]
 func (c ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.GetAllGroups")

@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/configs/": {
+        "/configs": {
             "get": {
                 "description": "Dobavlja sve konfiguracije u sistemu.",
                 "produces": [
@@ -164,7 +164,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/configsGroup/": {
+        "/configsGroup": {
             "get": {
                 "description": "Dobavlja sve grupe u sistemu sa njihovim konfiguracijama.",
                 "produces": [

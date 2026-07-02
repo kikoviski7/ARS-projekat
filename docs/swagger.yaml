@@ -36,7 +36,7 @@ info:
   title: Config Service API
   version: "1.0"
 paths:
-  /configs/:
+  /configs:
     get:
       description: Dobavlja sve konfiguracije u sistemu.
       produces:
@@ -133,7 +133,7 @@ paths:
       summary: PUT edit config
       tags:
       - configs
-  /configsGroup/:
+  /configsGroup:
     get:
       description: Dobavlja sve grupe u sistemu sa njihovim konfiguracijama.
       produces:

@@ -104,7 +104,7 @@ func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {object} []model.Config
 // @Failure 500
-// @Router /configs/ [get]
+// @Router /configs [get]
 func (c ConfigHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigHandler.GetAll")
