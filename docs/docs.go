@@ -506,21 +506,17 @@ const docTemplate = `{
                 }
             }
         },
-        "/configsGroup/{name}/{version}/{labels}": {
+        "/configsGroup/{name}/{version}/search": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
                 "description": "Vraća sve konfiguracije u datoj grupi prema navedenim labelama.",
                 "tags": [
                     "groups"
                 ],
                 "summary": "GET all configs in group by labels",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
-                        "name": "labels",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Group name",
@@ -534,6 +530,13 @@ const docTemplate = `{
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
+                        "name": "labels",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -545,6 +548,9 @@ const docTemplate = `{
                                 "$ref": "#/definitions/model.Config"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "No labels provided in query parameters"
                     },
                     "404": {
                         "description": "Group not found"
@@ -566,13 +572,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
-                        "name": "labels",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "Group name",
                         "name": "name",
                         "in": "path",
@@ -584,11 +583,21 @@ const docTemplate = `{
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
+                        "name": "labels",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "204": {
                         "description": "Konfiguracije u grupi koje odgovaraju labelama su obrisane"
+                    },
+                    "400": {
+                        "description": "No labels provided in query parameters"
                     },
                     "404": {
                         "description": "Group not found"

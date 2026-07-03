@@ -352,14 +352,16 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 // @Summary GET all configs in group by labels
 // @Description Vraća sve konfiguracije u datoj grupi prema navedenim labelama.
 // @Tags groups
-// @Param labels path string true "Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2..."
+// @Produce json
 // @Param name path string true "Group name"
 // @Param version path int true "Group version"
+// @Param labels query string true "Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2..."
 // @Success 200 {object} []model.Config "Konfiguracije u grupi koje odgovaraju labelama"
+// @Failure 400 "No labels provided in query parameters"
 // @Failure 404 "Group not found"
 // @Failure 429 "Previše zahteva, pokušajte kasnije"
 // @Failure 500 "Interna greška servera"
-// @Router /configsGroup/{name}/{version}/{labels} [get]
+// @Router /configsGroup/{name}/{version}/search [get]
 func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.GetConfigsByLabels")
@@ -419,14 +421,15 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 // @Summary DELETE remove config from group by labels
 // @Description Briše sve konfiguracije u datoj grupi prema navedenim labelama.
 // @Tags groups
-// @Param labels path string true "Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2..."
 // @Param name path string true "Group name"
 // @Param version path int true "Group version"
+// @Param labels query string true "Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2..."
 // @Success 204 "Konfiguracije u grupi koje odgovaraju labelama su obrisane"
+// @Failure 400 "No labels provided in query parameters"
 // @Failure 404 "Group not found"
 // @Failure 429 "Previše zahteva, pokušajte kasnije"
 // @Failure 500 "Interna greška servera"
-// @Router /configsGroup/{name}/{version}/{labels} [delete]
+// @Router /configsGroup/{name}/{version}/search [delete]
 func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := c.tracer.Start(r.Context(), "ConfigGroupHandler.DeleteConfigsByLabels")
