@@ -32,8 +32,12 @@ func NewConfigGroupHandler(service services.ConfigGroupService) ConfigGroupHandl
 // @Summary POST add group
 // @Description Kreira novu grupu sa tim nazivom i tom verzijom.
 // @Tags groups
-// @Success 201
-// @Failure 409
+// @Param name path string true "Group name"
+// @Param version path int true "Group version"
+// @Success 201 "Grupa je kreirana"
+// @Failure 409 "Grupa sa tim nazivom i verzijom već postoji"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configsGroup/{name}/{version} [post]
 func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 
@@ -100,7 +104,8 @@ func (c ConfigGroupHandler) PostGroup(w http.ResponseWriter, r *http.Request) {
 // @Tags groups
 // @Produce json
 // @Success 200 {object} []model.ConfigGroup
-// @Failure 404
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configsGroup [get]
 func (c ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request) {
 
@@ -133,8 +138,12 @@ func (c ConfigGroupHandler) GetAllGroups(w http.ResponseWriter, r *http.Request)
 // @Description Vraća grupu sa tim {name} i tim {version}.
 // @Tags groups
 // @Produce json
+// @Param name path string true "Group name"
+// @Param version path int true "Group version"
 // @Success 200 {object} model.ConfigGroup
-// @Failure 404
+// @Failure 404 "Group not found"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configsGroup/{name}/{version} [get]
 func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 
@@ -182,8 +191,12 @@ func (c ConfigGroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 // @Summary DELETE group by name and version
 // @Description Briše grupu sa tim {name} i tim {version}.
 // @Tags groups
-// @Success 204
-// @Failure 404
+// @Param name path string true "Group name"
+// @Param version path int true "Group version"
+// @Success 204 "Grupa je obrisana"
+// @Failure 404	"Group not found"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configsGroup/{name}/{version} [delete]
 func (c ConfigGroupHandler) DeleteGroupByVersion(w http.ResponseWriter, r *http.Request) {
 
@@ -280,10 +293,14 @@ func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http
 // @Summary PUT add config to group
 // @Description Dodaje postojeću konfiguraciju sa tim nazivom i verzijom u grupu sa svojim nazivom i verzijom
 // @Tags groups
-// @Accept  json
-// @Param  body body model.Config true "Config parameters"
-// @Success 200
-// @Failure 404
+// @Accept json
+// @Param config body model.Config true "Config with labels to be added to group"
+// @Param name path string true "Group name"
+// @Param version path int true "Group version"
+// @Success 200 "Config successfully added to group"
+// @Failure 404 "Group not found"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configsGroup/{name}/{version} [put]
 func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 
@@ -332,9 +349,13 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 // @Summary GET all configs in group by labels
 // @Description Vraća sve konfiguracije u datoj grupi prema navedenim labelama.
 // @Tags groups
-// @Produce json
-// @Success 200 {object} []model.Config
-// @Failure 404
+// @Param labels path string true "Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2..."
+// @Param name path string true "Group name"
+// @Param version path int true "Group version"
+// @Success 200 {object} []model.Config "Konfiguracije u grupi koje odgovaraju labelama"
+// @Failure 404 "Group not found"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configsGroup/{name}/{version}/{labels} [get]
 func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 
@@ -395,9 +416,13 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 // @Summary DELETE remove config from group by labels
 // @Description Briše sve konfiguracije u datoj grupi prema navedenim labelama.
 // @Tags groups
-// @Param labels path string true "Key-value pairs of labels to filter configs, e.g. label1=value1|label2=value2"
-// @Success 204
-// @Failure 404
+// @Param labels path string true "Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2..."
+// @Param name path string true "Group name"
+// @Param version path int true "Group version"
+// @Success 204 "Konfiguracije u grupi koje odgovaraju labelama su obrisane"
+// @Failure 404 "Group not found"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configsGroup/{name}/{version}/{labels} [delete]
 func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 

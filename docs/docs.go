@@ -27,7 +27,7 @@ const docTemplate = `{
                 "summary": "GET all configs",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Sve konfiguracije",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -35,8 +35,11 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
                     "500": {
-                        "description": "Internal Server Error"
+                        "description": "Interna greška servera"
                     }
                 }
             }
@@ -51,15 +54,33 @@ const docTemplate = `{
                     "configs"
                 ],
                 "summary": "GET config by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Sve verzije jedne konfiguracije",
                         "schema": {
-                            "$ref": "#/definitions/model.Config"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Config"
+                            }
                         }
                     },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Config not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             }
@@ -74,15 +95,37 @@ const docTemplate = `{
                     "configs"
                 ],
                 "summary": "GET config by name and version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Config version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Konfiguracija",
                         "schema": {
                             "$ref": "#/definitions/model.Config"
                         }
                     },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Config not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             },
@@ -97,8 +140,22 @@ const docTemplate = `{
                 "summary": "PUT edit config",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Config version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Config parameters",
-                        "name": "\"\"",
+                        "name": "configParams",
                         "in": "body",
                         "schema": {
                             "type": "object",
@@ -110,10 +167,16 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Konfiguracija je izmenjena"
                     },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Config not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             },
@@ -129,7 +192,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Config parameters",
-                        "name": "body",
+                        "name": "configParams",
                         "in": "body",
                         "schema": {
                             "type": "object",
@@ -137,14 +200,41 @@ const docTemplate = `{
                                 "type": "string"
                             }
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Config version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created"
+                        "description": "Konfiguracija je kreirana"
                     },
                     "409": {
-                        "description": "Conflict"
+                        "description": "Konfiguracija sa tim nazivom i verzijom već postoji"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             },
@@ -154,12 +244,34 @@ const docTemplate = `{
                     "configs"
                 ],
                 "summary": "DELETE config by name and version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Config version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "Konfiguracija je obrisana"
                     },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Config not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             }
@@ -184,8 +296,11 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "404": {
-                        "description": "Not Found"
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             }
@@ -200,6 +315,22 @@ const docTemplate = `{
                     "groups"
                 ],
                 "summary": "GET group by name and version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -208,7 +339,13 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             },
@@ -223,21 +360,41 @@ const docTemplate = `{
                 "summary": "PUT add config to group",
                 "parameters": [
                     {
-                        "description": "Config parameters",
-                        "name": "body",
+                        "description": "Config with labels to be added to group",
+                        "name": "config",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/model.Config"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "Config successfully added to group"
                     },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             },
@@ -247,12 +404,34 @@ const docTemplate = `{
                     "groups"
                 ],
                 "summary": "POST add group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "201": {
-                        "description": "Created"
+                        "description": "Grupa je kreirana"
                     },
                     "409": {
-                        "description": "Conflict"
+                        "description": "Grupa sa tim nazivom i verzijom već postoji"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             },
@@ -262,12 +441,34 @@ const docTemplate = `{
                     "groups"
                 ],
                 "summary": "DELETE group by name and version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "Grupa je obrisana"
                     },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             }
@@ -275,16 +476,36 @@ const docTemplate = `{
         "/configsGroup/{name}/{version}/{labels}": {
             "get": {
                 "description": "Vraća sve konfiguracije u datoj grupi prema navedenim labelama.",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "groups"
                 ],
                 "summary": "GET all configs in group by labels",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
+                        "name": "labels",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Konfiguracije u grupi koje odgovaraju labelama",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -293,7 +514,13 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             },
@@ -306,18 +533,38 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1|label2=value2",
+                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
                         "name": "labels",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "Konfiguracije u grupi koje odgovaraju labelama su obrisane"
                     },
                     "404": {
-                        "description": "Not Found"
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
                     }
                 }
             }

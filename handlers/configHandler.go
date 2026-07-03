@@ -32,10 +32,15 @@ func NewConfigHandler(service services.ConfigService) ConfigHandler {
 // @Summary POST add config
 // @Description Kreira konfiguraciju sa zadatim nazivom i verzijom.
 // @Tags configs
-// @Accept  json
-// @Param  body body map[string]string false "Config parameters"
-// @Success 201
-// @Failure 409
+// @Accept json
+// @Param configParams body map[string]string false "Config parameters"
+// @Param name path string true "Config name"
+// @Param version path int true "Config version"
+// @Param Idempotency-Key header string true "Idempotency key for idempotent requests"
+// @Success 201 "Konfiguracija je kreirana"
+// @Failure 409 "Konfiguracija sa tim nazivom i verzijom već postoji"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configs/{name}/{version} [post]
 func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 
@@ -102,8 +107,9 @@ func (c ConfigHandler) Post(w http.ResponseWriter, r *http.Request) {
 // @Description Dobavlja sve konfiguracije u sistemu.
 // @Tags configs
 // @Produce json
-// @Success 200 {object} []model.Config
-// @Failure 500
+// @Success 200 {object} []model.Config "Sve konfiguracije"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configs [get]
 func (c ConfigHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
@@ -137,8 +143,11 @@ func (c ConfigHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 // @Description Vraća sve verzije jedne konfiguracije.
 // @Tags configs
 // @Produce json
-// @Success 200 {object} model.Config
-// @Failure 404
+// @Param name path string true "Config name"
+// @Success 200 {object} []model.Config "Sve verzije jedne konfiguracije"
+// @Failure 404 "Config not found"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configs/{name} [get]
 func (c ConfigHandler) GetByName(w http.ResponseWriter, r *http.Request) {
 
@@ -175,8 +184,12 @@ func (c ConfigHandler) GetByName(w http.ResponseWriter, r *http.Request) {
 // @Description Vraća konfiguraciju sa tim {name} i tim {version}.
 // @Tags configs
 // @Produce json
-// @Success 200 {object} model.Config
-// @Failure 404
+// @Param name path string true "Config name"
+// @Param version path int true "Config version"
+// @Success 200 {object} model.Config "Konfiguracija"
+// @Failure 404 "Config not found"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configs/{name}/{version} [get]
 func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 
@@ -226,8 +239,12 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 // @Summary DELETE config by name and version
 // @Description Briše konfiguraciju sa tim {name} i tim {version}.
 // @Tags configs
-// @Success 204
-// @Failure 404
+// @Param name path string true "Config name"
+// @Param version path int true "Config version"
+// @Success 204 "Konfiguracija je obrisana"
+// @Failure 404 "Config not found"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configs/{name}/{version} [delete]
 func (c ConfigHandler) DeleteByVersion(w http.ResponseWriter, r *http.Request) {
 
@@ -267,9 +284,13 @@ func (c ConfigHandler) DeleteByVersion(w http.ResponseWriter, r *http.Request) {
 // @Description Menja konfiguraciju pod tim nazivom i verzijom
 // @Tags configs
 // @Accept  json
-// @Param "" body map[string]string false "Config parameters"
-// @Success 200
-// @Failure 404
+// @Param name path string true "Config name"
+// @Param version path int true "Config version"
+// @Param configParams body map[string]string false "Config parameters"
+// @Success 200 "Konfiguracija je izmenjena"
+// @Failure 404 "Config not found"
+// @Failure 429 "Previše zahteva, pokušajte kasnije"
+// @Failure 500 "Interna greška servera"
 // @Router /configs/{name}/{version} [put]
 func (c ConfigHandler) Put(w http.ResponseWriter, r *http.Request) {
 
