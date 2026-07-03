@@ -26,6 +26,7 @@ import (
 // @title Config Service API
 // @version 1.0
 // @host localhost:8000
+// @schemes http
 // @description This is a Config Service API.
 func main() {
 
@@ -56,6 +57,7 @@ func main() {
 
 	router := mux.NewRouter()
 	router.Use(middleware.TracingMiddleware)
+	router.Use(corsMiddleware)
 
 	router.HandleFunc("/configs/{name}/{version}", handler.Get).Methods("GET")
 	router.HandleFunc("/configs/{name}", handler.GetByName).Methods("GET")
@@ -81,7 +83,6 @@ func main() {
 
 	rateLimiter := middleware.NewRateLimiter(100, 10)
 	router.Use(rateLimiter.Middleware)
-	router.Use(corsMiddleware)
 
 	metricsHandler := middleware.MetricsMiddleware(router, metricsCollector)
 
