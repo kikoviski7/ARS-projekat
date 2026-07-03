@@ -163,6 +163,13 @@ const docTemplate = `{
                                 "type": "string"
                             }
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -381,6 +388,13 @@ const docTemplate = `{
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -418,6 +432,25 @@ const docTemplate = `{
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Just name and version",
+                        "name": "configs",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Config"
+                            }
+                        }
                     }
                 ],
                 "responses": {
@@ -475,10 +508,10 @@ const docTemplate = `{
         },
         "/configsGroup/{name}/{version}/search": {
             "get": {
-                "description": "Vraća sve konfiguracije u datoj grupi prema navedenim labelama. Labele se prosleđuju kao query parametri (npr. ?label1=value1\u0026label2=value2), a sve navedene labele moraju se poklopiti sa labelama konfiguracije.",
                 "produces": [
                     "application/json"
                 ],
+                "description": "Vraća sve konfiguracije u datoj grupi prema navedenim labelama.",
                 "tags": [
                     "groups"
                 ],
@@ -500,9 +533,10 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Labele za filtriranje kao key-value query parametri, npr. label1=value1\u0026label2=value2",
+                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
                         "name": "labels",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -514,6 +548,9 @@ const docTemplate = `{
                                 "$ref": "#/definitions/model.Config"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "No labels provided in query parameters"
                     },
                     "404": {
                         "description": "Group not found"
@@ -527,7 +564,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Briše sve konfiguracije u datoj grupi prema navedenim labelama. Labele se prosleđuju kao query parametri (npr. ?label1=value1\u0026label2=value2), a sve navedene labele moraju se poklopiti sa labelama konfiguracije.",
+                "description": "Briše sve konfiguracije u datoj grupi prema navedenim labelama.",
                 "tags": [
                     "groups"
                 ],
@@ -549,14 +586,18 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Labele za filtriranje kao key-value query parametri, npr. label1=value1\u0026label2=value2",
+                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
                         "name": "labels",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "204": {
                         "description": "Konfiguracije u grupi koje odgovaraju labelama su obrisane"
+                    },
+                    "400": {
+                        "description": "No labels provided in query parameters"
                     },
                     "404": {
                         "description": "Group not found"

@@ -34,6 +34,8 @@ func NewConfigGroupHandler(service services.ConfigGroupService) ConfigGroupHandl
 // @Tags groups
 // @Param name path string true "Group name"
 // @Param version path int true "Group version"
+// @Param Idempotency-Key header string true "Idempotency key for idempotent requests"
+// @Param configs body []model.Config true "Just name and version"
 // @Success 201 "Grupa je kreirana"
 // @Failure 409 "Grupa sa tim nazivom i verzijom već postoji"
 // @Failure 429 "Previše zahteva, pokušajte kasnije"
@@ -297,6 +299,7 @@ func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http
 // @Param config body model.Config true "Config with labels to be added to group"
 // @Param name path string true "Group name"
 // @Param version path int true "Group version"
+// @Param Idempotency-Key header string true "Idempotency key for idempotent requests"
 // @Success 200 "Config successfully added to group"
 // @Failure 404 "Group not found"
 // @Failure 429 "Previše zahteva, pokušajte kasnije"
@@ -347,13 +350,14 @@ func (c ConfigGroupHandler) PutGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary GET all configs in group by labels
-// @Description Vraća sve konfiguracije u datoj grupi prema navedenim labelama. Labele se prosleđuju kao query parametri (npr. ?label1=value1&label2=value2), a sve navedene labele moraju se poklopiti sa labelama konfiguracije.
+// @Description Vraća sve konfiguracije u datoj grupi prema navedenim labelama.
 // @Tags groups
 // @Produce json
 // @Param name path string true "Group name"
 // @Param version path int true "Group version"
-// @Param labels query string false "Labele za filtriranje kao key-value query parametri, npr. label1=value1&label2=value2"
+// @Param labels query string true "Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2..."
 // @Success 200 {object} []model.Config "Konfiguracije u grupi koje odgovaraju labelama"
+// @Failure 400 "No labels provided in query parameters"
 // @Failure 404 "Group not found"
 // @Failure 429 "Previše zahteva, pokušajte kasnije"
 // @Failure 500 "Interna greška servera"
@@ -415,12 +419,13 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 }
 
 // @Summary DELETE remove config from group by labels
-// @Description Briše sve konfiguracije u datoj grupi prema navedenim labelama. Labele se prosleđuju kao query parametri (npr. ?label1=value1&label2=value2), a sve navedene labele moraju se poklopiti sa labelama konfiguracije.
+// @Description Briše sve konfiguracije u datoj grupi prema navedenim labelama.
 // @Tags groups
 // @Param name path string true "Group name"
 // @Param version path int true "Group version"
-// @Param labels query string false "Labele za filtriranje kao key-value query parametri, npr. label1=value1&label2=value2"
+// @Param labels query string true "Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2..."
 // @Success 204 "Konfiguracije u grupi koje odgovaraju labelama su obrisane"
+// @Failure 400 "No labels provided in query parameters"
 // @Failure 404 "Group not found"
 // @Failure 429 "Previše zahteva, pokušajte kasnije"
 // @Failure 500 "Interna greška servera"

@@ -198,6 +198,11 @@ paths:
           additionalProperties:
             type: string
           type: object
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
       responses:
         "200":
           description: Konfiguracija je izmenjena
@@ -297,6 +302,19 @@ paths:
         name: version
         required: true
         type: integer
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Just name and version
+        in: body
+        name: configs
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.Config'
+          type: array
       responses:
         "201":
           description: Grupa je kreirana
@@ -331,6 +349,11 @@ paths:
         name: version
         required: true
         type: integer
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
       responses:
         "200":
           description: Config successfully added to group
@@ -346,8 +369,6 @@ paths:
   /configsGroup/{name}/{version}/search:
     delete:
       description: Briše sve konfiguracije u datoj grupi prema navedenim labelama.
-        Labele se prosleđuju kao query parametri (npr. ?label1=value1&label2=value2),
-        a sve navedene labele moraju se poklopiti sa labelama konfiguracije.
       parameters:
       - description: Group name
         in: path
@@ -359,13 +380,16 @@ paths:
         name: version
         required: true
         type: integer
-      - description: Labele za filtriranje kao key-value query parametri, npr. label1=value1&label2=value2
+      - description: Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2...
         in: query
         name: labels
+        required: true
         type: string
       responses:
         "204":
           description: Konfiguracije u grupi koje odgovaraju labelama su obrisane
+        "400":
+          description: No labels provided in query parameters
         "404":
           description: Group not found
         "429":
@@ -377,8 +401,6 @@ paths:
       - groups
     get:
       description: Vraća sve konfiguracije u datoj grupi prema navedenim labelama.
-        Labele se prosleđuju kao query parametri (npr. ?label1=value1&label2=value2),
-        a sve navedene labele moraju se poklopiti sa labelama konfiguracije.
       parameters:
       - description: Group name
         in: path
@@ -390,9 +412,10 @@ paths:
         name: version
         required: true
         type: integer
-      - description: Labele za filtriranje kao key-value query parametri, npr. label1=value1&label2=value2
+      - description: Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2...
         in: query
         name: labels
+        required: true
         type: string
       produces:
       - application/json
@@ -403,6 +426,8 @@ paths:
             items:
               $ref: '#/definitions/model.Config'
             type: array
+        "400":
+          description: No labels provided in query parameters
         "404":
           description: Group not found
         "429":
