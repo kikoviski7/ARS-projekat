@@ -294,7 +294,7 @@ func (c ConfigHandler) DeleteByVersion(w http.ResponseWriter, r *http.Request) {
 // @Router /configs/{name}/{version} [put]
 func (c ConfigHandler) Put(w http.ResponseWriter, r *http.Request) {
 
-	ctx, span := c.tracer.Start(r.Context(), "ConfigHandler.DeleteByVersion")
+	ctx, span := c.tracer.Start(r.Context(), "ConfigHandler.Put")
 	defer span.End()
 
 	oldName := mux.Vars(r)["name"]
@@ -332,7 +332,7 @@ func (c ConfigHandler) Put(w http.ResponseWriter, r *http.Request) {
 		attribute.String("idempotency.key", idempotencyKey),
 	)
 
-	err = c.service.Put(ctx, config, oldName, oldVersionInt, config.IdempotencyKey)
+	err = c.service.Put(ctx, config, oldName, oldVersionInt, idempotencyKey)
 
 	if err != nil {
 		span.RecordError(err)

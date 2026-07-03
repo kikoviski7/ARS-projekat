@@ -273,39 +273,36 @@ func (c ConfigConsulRepository) DeleteConfigsByLabels(ctx context.Context, name 
 		attribute.Int("labels.count", len(labels)),
 	)
 
-	_, err := c.GetGroup(ctx, name, version)
+	group, err := c.GetGroup(ctx, name, version)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
-	prefix := groupConfigPrefix(name, version, labels)
+	deleted := 0
+	for _, config := range group.Configs {
+		if !matchesAllLabels(config.Labels, labels) {
+			continue
+		}
 
-	pairs, _, err := c.kv.List(prefix, nil)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return fmt.Errorf("failed to get grouped configs from consul: %w", err)
+		_, err := c.kv.Delete(groupConfigKey(name, version, config), nil)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			return fmt.Errorf("failed to delete grouped config from consul: %w", err)
+		}
+		deleted++
 	}
 
-	if len(pairs) == 0 {
+	if deleted == 0 {
 		err := fmt.Errorf("nothing to delete: no configs found with labels %v", labels)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
-	for _, pair := range pairs {
-		_, err := c.kv.Delete(pair.Key, nil)
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			return fmt.Errorf("failed to delete grouped config from consul: %w", err)
-		}
-	}
-
-	span.SetAttributes(attribute.Int("deleted.count", len(pairs)))
+	span.SetAttributes(attribute.Int("deleted.count", deleted))
 	return nil
 }
 
@@ -562,33 +559,19 @@ func (c ConfigConsulRepository) GetConfigsByLabels(ctx context.Context, name str
 		attribute.Int("labels.count", len(labels)),
 	)
 
-	_, err := c.GetGroup(ctx, name, version)
+	group, err := c.GetGroup(ctx, name, version)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
-	prefix := groupConfigPrefix(name, version, labels)
-
-	pairs, _, err := c.kv.List(prefix, nil)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, fmt.Errorf("failed to get grouped configs from consul: %w", err)
-	}
-
 	configs := make([]model.Config, 0)
 
-	for _, pair := range pairs {
-		var config model.Config
-		err := json.Unmarshal(pair.Value, &config)
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			return nil, fmt.Errorf("failed to unmarshal grouped config: %w", err)
+	for _, config := range group.Configs {
+		if matchesAllLabels(config.Labels, labels) {
+			configs = append(configs, config)
 		}
-		configs = append(configs, config)
 	}
 
 	span.SetAttributes(attribute.Int("results.count", len(configs)))
@@ -839,13 +822,6 @@ func groupConfigKey(groupName string, groupVersion int, config model.Config) str
 		config.Name +
 		"/" +
 		strconv.Itoa(config.Version)
-}
-
-func groupConfigPrefix(groupName string, groupVersion int, labels map[string]string) string {
-	return groupKey(groupName, groupVersion) +
-		"/" +
-		buildLabelsKey(labels) +
-		"/"
 }
 
 func (c ConfigConsulRepository) getConfigsForGroup(

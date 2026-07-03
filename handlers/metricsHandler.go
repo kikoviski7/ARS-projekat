@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -57,14 +58,14 @@ func NewMetrics() *MetricsResponse {
 }
 
 func (m *MetricsResponse) RecordRequest(method, endpoint string, statusCode int, duration time.Duration) {
-	statusGroup := string(rune(statusCode))
-	m.TotalRequests24h.WithLabelValues(method, endpoint, statusGroup).Inc()
+	statusLabel := strconv.Itoa(statusCode)
+	m.TotalRequests24h.WithLabelValues(method, endpoint, statusLabel).Inc()
 	m.RequestsPerMinute.WithLabelValues(method, endpoint).Inc()
 	m.AverageRequestDuration.WithLabelValues(method, endpoint).Observe(duration.Seconds())
 
 	if statusCode >= 200 && statusCode < 400 {
 		m.SuccessfulRequests24h.WithLabelValues(method, endpoint).Inc()
 	} else if statusCode >= 400 {
-		m.FailedRequests24h.WithLabelValues(method, endpoint, statusGroup).Inc()
+		m.FailedRequests24h.WithLabelValues(method, endpoint, statusLabel).Inc()
 	}
 }

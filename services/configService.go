@@ -136,8 +136,8 @@ func (s ConfigService) Put(
 	err = s.repo.Put(ctx, config, oldName, oldVersion)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to get config by name")
-		return nil
+		span.SetStatus(codes.Error, "failed to update config")
+		return err
 	}
 
 	span.SetStatus(codes.Ok, "config updated successfully")

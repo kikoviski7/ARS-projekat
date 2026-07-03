@@ -473,21 +473,17 @@ const docTemplate = `{
                 }
             }
         },
-        "/configsGroup/{name}/{version}/{labels}": {
+        "/configsGroup/{name}/{version}/search": {
             "get": {
-                "description": "Vraća sve konfiguracije u datoj grupi prema navedenim labelama.",
+                "description": "Vraća sve konfiguracije u datoj grupi prema navedenim labelama. Labele se prosleđuju kao query parametri (npr. ?label1=value1\u0026label2=value2), a sve navedene labele moraju se poklopiti sa labelama konfiguracije.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "groups"
                 ],
                 "summary": "GET all configs in group by labels",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
-                        "name": "labels",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Group name",
@@ -501,6 +497,12 @@ const docTemplate = `{
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Labele za filtriranje kao key-value query parametri, npr. label1=value1\u0026label2=value2",
+                        "name": "labels",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -525,19 +527,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Briše sve konfiguracije u datoj grupi prema navedenim labelama.",
+                "description": "Briše sve konfiguracije u datoj grupi prema navedenim labelama. Labele se prosleđuju kao query parametri (npr. ?label1=value1\u0026label2=value2), a sve navedene labele moraju se poklopiti sa labelama konfiguracije.",
                 "tags": [
                     "groups"
                 ],
                 "summary": "DELETE remove config from group by labels",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
-                        "name": "labels",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Group name",
@@ -551,6 +546,12 @@ const docTemplate = `{
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Labele za filtriranje kao key-value query parametri, npr. label1=value1\u0026label2=value2",
+                        "name": "labels",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -625,7 +626,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8000",
 	BasePath:         "",
-	Schemes:          []string{},
+	Schemes:          []string{"http"},
 	Title:            "Config Service API",
 	Description:      "This is a Config Service API.",
 	InfoInstanceName: "swagger",
