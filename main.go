@@ -57,7 +57,6 @@ func main() {
 
 	router := mux.NewRouter()
 	router.Use(middleware.TracingMiddleware)
-	router.Use(corsMiddleware)
 
 	router.HandleFunc("/configs/{name}/{version}", handler.Get).Methods("GET")
 	router.HandleFunc("/configs/{name}", handler.GetByName).Methods("GET")
@@ -84,7 +83,8 @@ func main() {
 	rateLimiter := middleware.NewRateLimiter(100, 10)
 	router.Use(rateLimiter.Middleware)
 
-	metricsHandler := middleware.MetricsMiddleware(router, metricsCollector)
+	corsHandler := corsMiddleware(router)
+	metricsHandler := middleware.MetricsMiddleware(corsHandler, metricsCollector)
 
 	server := &http.Server{
 		Addr:    ":8000",
@@ -141,12 +141,26 @@ func initTracer() (*sdktrace.TracerProvider, error) {
 	return tp, nil
 }
 
+var allowedOrigins = map[string]bool{
+	"http://localhost:8080": true,
+	"http://127.0.0.1:8080": true,
+}
+
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
+		origin := r.Header.Get("Origin")
+		if allowedOrigins[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if requestedHeaders := r.Header.Get("Access-Control-Request-Headers"); requestedHeaders != "" {
+			w.Header().Set("Access-Control-Allow-Headers", requestedHeaders)
+		} else {
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept")
+		}
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
