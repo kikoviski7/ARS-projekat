@@ -1,0 +1,436 @@
+definitions:
+  model.Config:
+    properties:
+      id:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      params:
+        additionalProperties:
+          type: string
+        type: object
+      version:
+        type: integer
+    type: object
+  model.ConfigGroup:
+    properties:
+      configs:
+        items:
+          $ref: '#/definitions/model.Config'
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      version:
+        type: integer
+    type: object
+host: localhost:8000
+info:
+  contact: {}
+  description: This is a Config Service API.
+  title: Config Service API
+  version: "1.0"
+paths:
+  /configs:
+    get:
+      description: Dobavlja sve konfiguracije u sistemu.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sve konfiguracije
+          schema:
+            items:
+              $ref: '#/definitions/model.Config'
+            type: array
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: GET all configs
+      tags:
+      - configs
+  /configs/{name}:
+    get:
+      description: Vraća sve verzije jedne konfiguracije.
+      parameters:
+      - description: Config name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sve verzije jedne konfiguracije
+          schema:
+            items:
+              $ref: '#/definitions/model.Config'
+            type: array
+        "404":
+          description: Config not found
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: GET config by name
+      tags:
+      - configs
+  /configs/{name}/{version}:
+    delete:
+      description: Briše konfiguraciju sa tim {name} i tim {version}.
+      parameters:
+      - description: Config name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Config version
+        in: path
+        name: version
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Konfiguracija je obrisana
+        "404":
+          description: Config not found
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: DELETE config by name and version
+      tags:
+      - configs
+    get:
+      description: Vraća konfiguraciju sa tim {name} i tim {version}.
+      parameters:
+      - description: Config name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Config version
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Konfiguracija
+          schema:
+            $ref: '#/definitions/model.Config'
+        "404":
+          description: Config not found
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: GET config by name and version
+      tags:
+      - configs
+    post:
+      consumes:
+      - application/json
+      description: Kreira konfiguraciju sa zadatim nazivom i verzijom.
+      parameters:
+      - description: Config parameters
+        in: body
+        name: configParams
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      - description: Config name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Config version
+        in: path
+        name: version
+        required: true
+        type: integer
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Konfiguracija je kreirana
+        "409":
+          description: Konfiguracija sa tim nazivom i verzijom već postoji
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: POST add config
+      tags:
+      - configs
+    put:
+      consumes:
+      - application/json
+      description: Menja konfiguraciju pod tim nazivom i verzijom
+      parameters:
+      - description: Config name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Config version
+        in: path
+        name: version
+        required: true
+        type: integer
+      - description: Config parameters
+        in: body
+        name: configParams
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Konfiguracija je izmenjena
+        "404":
+          description: Config not found
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: PUT edit config
+      tags:
+      - configs
+  /configsGroup:
+    get:
+      description: Dobavlja sve grupe u sistemu sa njihovim konfiguracijama.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.ConfigGroup'
+            type: array
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: GET all groups
+      tags:
+      - groups
+  /configsGroup/{name}/{version}:
+    delete:
+      description: Briše grupu sa tim {name} i tim {version}.
+      parameters:
+      - description: Group name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Group version
+        in: path
+        name: version
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Grupa je obrisana
+        "404":
+          description: Group not found
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: DELETE group by name and version
+      tags:
+      - groups
+    get:
+      description: Vraća grupu sa tim {name} i tim {version}.
+      parameters:
+      - description: Group name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Group version
+        in: path
+        name: version
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ConfigGroup'
+        "404":
+          description: Group not found
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: GET group by name and version
+      tags:
+      - groups
+    post:
+      description: Kreira novu grupu sa tim nazivom i tom verzijom.
+      parameters:
+      - description: Group name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Group version
+        in: path
+        name: version
+        required: true
+        type: integer
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Just name and version
+        in: body
+        name: configs
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.Config'
+          type: array
+      responses:
+        "201":
+          description: Grupa je kreirana
+        "409":
+          description: Grupa sa tim nazivom i verzijom već postoji
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: POST add group
+      tags:
+      - groups
+    put:
+      consumes:
+      - application/json
+      description: Dodaje postojeću konfiguraciju sa tim nazivom i verzijom u grupu
+        sa svojim nazivom i verzijom
+      parameters:
+      - description: Config with labels to be added to group
+        in: body
+        name: config
+        required: true
+        schema:
+          $ref: '#/definitions/model.Config'
+      - description: Group name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Group version
+        in: path
+        name: version
+        required: true
+        type: integer
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Config successfully added to group
+        "404":
+          description: Group not found
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: PUT add config to group
+      tags:
+      - groups
+  /configsGroup/{name}/{version}/{labels}:
+    delete:
+      description: Briše sve konfiguracije u datoj grupi prema navedenim labelama.
+      parameters:
+      - description: Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2...
+        in: path
+        name: labels
+        required: true
+        type: string
+      - description: Group name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Group version
+        in: path
+        name: version
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Konfiguracije u grupi koje odgovaraju labelama su obrisane
+        "404":
+          description: Group not found
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: DELETE remove config from group by labels
+      tags:
+      - groups
+    get:
+      description: Vraća sve konfiguracije u datoj grupi prema navedenim labelama.
+      parameters:
+      - description: Key-value pairs of labels to filter configs, e.g. label1=value1&label2=value2...
+        in: path
+        name: labels
+        required: true
+        type: string
+      - description: Group name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Group version
+        in: path
+        name: version
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: Konfiguracije u grupi koje odgovaraju labelama
+          schema:
+            items:
+              $ref: '#/definitions/model.Config'
+            type: array
+        "404":
+          description: Group not found
+        "429":
+          description: Previše zahteva, pokušajte kasnije
+        "500":
+          description: Interna greška servera
+      summary: GET all configs in group by labels
+      tags:
+      - groups
+schemes:
+- http
+swagger: "2.0"

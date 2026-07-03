@@ -13,7 +13,10 @@ Servis služi za kreiranje, čuvanje i prikaz konfiguracija. Konfiguracije su op
 
 Sistem je REST API koji je napisan u Golang 1.25, podaci o konfiguracijama i grupama se čuvaju u HashiCorp Consul KV bazi podataka, servis i baza podataka su kontejnerizovani u Dockeru, a sistem je orkestriran putem docker-compose alata.
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> develop
 # Pokretanje sistema
 
 -> Aktivira se Docker Engine
@@ -36,17 +39,17 @@ Sastoji se od tri kontejnera, jedan za Go API servis, drugi za Consul bazu podat
     - Response 500: vraća grešku da server ne odgovara
 
   - GET config by name -> vraća sve verzije jedne konfiguracije
-    - Request: GET "/configs/{configName}"
-    - Response 200: vraća JSON sa svim verzijama konfiguracije pod nazivom {configName}
+    - Request: GET "/configs/{name}"
+    - Response 200: vraća JSON sa svim verzijama konfiguracije pod nazivom {name}
     - Response 404: vraća grešku, konfiguracije nisu pronađene
 
-  - GET config by name and version -> vraća konfiguraciju sa tim {configName} i tim {configVersion}
-    - Request: GET "/configs/{configName}/{configVersion}"
-    - Response 200: vraća JSON sa konfiguracijom pod nazivom {configName} i verzijom {configVersion}
+  - GET config by name and version -> vraća konfiguraciju sa tim {name} i tim {version}
+    - Request: GET "/configs/{name}/{version}"
+    - Response 200: vraća JSON sa konfiguracijom pod nazivom {name} i verzijom {version}
     - Response 404: vraća grešku, konfiguracija nije pronađena
 
   - POST add config -> kreira konfiguraciju sa zadatim nazivom i verzijom
-    - Request: POST "/configs/{configName}/{configVersion}"
+    - Request: POST "/configs/{name}/{version}"
       - Body: očekuje proizvoljan broj parametara
         - {
             params: {
@@ -58,13 +61,13 @@ Sastoji se od tri kontejnera, jedan za Go API servis, drugi za Consul bazu podat
     - Response 409: vraća poruku da konfiguracija već postoji pod tim nazivom i verzijom
 
   - PUT edit config -> menja konfiguraciju pod tim nazivom i verzijom
-    - Request: POST "/configs/{configName}/{configVersion}"
+    - Request: POST "/configs/{name}/{version}"
       - Body: očekuje celu novu konfiguraciju sa izmenama
     - Response 200: vraća potvrdu da je izmena uspešna
     - Response 404: vraća grešku, konfiguracija nije pronađena
 
   - DELETE config -> briše konfiguraciju pod tim nazivom i verzijom
-    - Request: DELETE "/configs/{configName}/{configVersion}"
+    - Request: DELETE "/configs/{name}/{version}"
     - Response 204: vraća potvrdu da je konfiguracija obrisana
     - Response 404: vraća grešku, konfiguracija nije pronađena
 
@@ -76,17 +79,17 @@ Sastoji se od tri kontejnera, jedan za Go API servis, drugi za Consul bazu podat
     - Response 5xx: vraća grešku da server ne odgovara
 
   - GET group by name and version -> vraća grupu pod tim nazivom i tom verzijom i konfiguracije u toj grupi
-    - Request: GET "/configsGroup/{groupName}/{groupVersion}"
+    - Request: GET "/configsGroup/{name}/{version}"
     - Response 200: vraća JSON sa grupom pod tim nazivom i tom verzijom i listom konfiguracija
     - Response 404: vraća grešku, grupa nije pronađena
 
   - POST add one group -> kreira novu grupu sa tim nazivom i tom verzijom
-    - Request: POST "/configsGroup/{groupName}/{groupVersion}"
+    - Request: POST "/configsGroup/{name}/{version}"
     - Response 201: vraća potvrdu da je grupa kreirana
     - Response 409: vraća poruku da grupa već postoji pod tim nazivom i verzijom
 
   - PUT add config to group -> dodaje postojeću konfiguraciju sa tim nazivom i verzijom u grupu sa svojim nazivom i verzijom
-    - Request: PUT "/configsGroup/{groupName}/{groupVersion}"
+    - Request: PUT "/configsGroup/{name}/{version}"
       - Body: očekuje JSON sa postojećom konfiguracijom i JSON listom labela
         - {
             "name": "naziv",
@@ -100,17 +103,17 @@ Sastoji se od tri kontejnera, jedan za Go API servis, drugi za Consul bazu podat
     - Response 404: vraća grešku, grupa nije pronađena ili konfiguracija nije pronađena
   
   - GET all configs in group by labels -> dobavlja sve konfiguracije u datoj grupi prema navedenim labelama
-    - Request: GET "/configsGroup/{groupName}/{groupVersion}/label1=value1|label2=value2"
+    - Request: GET "/configsGroup/{name}/{version}/label1=value1|label2=value2"
     - Response 200: vraća JSON sa svim konfiguracijama u toj grupi koje imaju tačno sve navedene labele
     - Response 404: vraća grešku, grupa nije pronađena
 
   - DELETE remove config from group by labels -> briše sve konfiguracije u datoj grupi prema navedenim labelama
-    - Request: DELETE "/configsGroup/{groupName}/{groupVersion}/label1=value1|label2=value2"
+    - Request: DELETE "/configsGroup/{name}/{version}/label1=value1|label2=value2"
     - Response 204: vraća potvrdu da su konfiguracije obrisane
     - Response 404: vraća grešku, grupa nije pronađena
 
   - DELETE one group by name and version -> briše grupu pod tim nazivom i verzijom
-    - Request: DELETE "/configsGroup/{groupName}/{groupVersion}"
+    - Request: DELETE "/configsGroup/{name}/{version}"
     - Response 204: vraća potvrdu da je grupa obrisana
     - Response 404: vraća grešku, grupa nije pronađena
 

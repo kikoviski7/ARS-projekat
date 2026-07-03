@@ -1,7 +1,10 @@
-version: '3.9'
+volumes:
+  prometheus-data:
+
 services:
   api:
     build: .
+    # image: zoricjovanftn/projekat:latest
     container_name: ars-api
     ports:
       - "8000:8000"
@@ -35,3 +38,32 @@ services:
       - COLLECTOR_OTLP_ENABLED=true
       - LOG_LEVEL=info
     restart: always
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    user: root
+    depends_on:
+      - api
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: swagger-ui
+    ports:
+      - "8080:8080"
+    environment:
+      SWAGGER_JSON: /api/swagger.yaml
+    develop:
+      watch: 
+        - path: docs
+          action: restart
+    volumes:
+        - ./docs/swagger.yaml:/api/swagger.yaml:ro
+

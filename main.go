@@ -16,14 +16,18 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
-	//"go.opentelemetry.io/otel/exporters/jaeger/otlp"
-	//"go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// @title Config Service API
+// @version 1.0
+// @host localhost:8000
+// @schemes http
+// @description This is a Config Service API.
 func main() {
 
 	tp, err := initTracer()
@@ -49,9 +53,9 @@ func main() {
 	groupService := services.NewConfigGroupService(consulRepo)
 	handler := handlers.NewConfigHandler(service)
 	groupHandler := handlers.NewConfigGroupHandler(groupService)
+	metricsCollector := handlers.NewMetrics()
 
 	router := mux.NewRouter()
-
 	router.Use(middleware.TracingMiddleware)
 
 	router.HandleFunc("/configs/{name}/{version}", handler.Get).Methods("GET")
@@ -70,18 +74,17 @@ func main() {
 
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.GetConfigsByLabels).Methods("GET")
 	router.HandleFunc("/configsGroup/{name}/{version}/search", groupHandler.DeleteConfigsByLabels).Methods("DELETE")
+	router.Handle("/metrics", promhttp.Handler())
 
-	router.HandleFunc("/metrics", handlers.GetMetrics)
 	router.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello"))
 	})
 
-	http.Handle("/metrics", http.HandlerFunc(handlers.GetMetrics))
-
 	rateLimiter := middleware.NewRateLimiter(100, 10)
 	router.Use(rateLimiter.Middleware)
 
-	metricsHandler := middleware.MetricsMiddleware(router)
+	corsHandler := corsMiddleware(router)
+	metricsHandler := middleware.MetricsMiddleware(corsHandler, metricsCollector)
 
 	server := &http.Server{
 		Addr:    ":8000",
@@ -116,11 +119,6 @@ func initTracer() (*sdktrace.TracerProvider, error) {
 		otlptracegrpc.WithInsecure(),
 	)
 
-	/*exporter, err := jaeger.New(
-		jaeger.WithCollectorEndpoint(
-			jaeger.WithEndpoint(os.Getenv("JAEGER_ENDPOINT")+"/api/traces"),
-		),
-	)*/
 	if err != nil {
 		return nil, err
 	}
@@ -141,4 +139,34 @@ func initTracer() (*sdktrace.TracerProvider, error) {
 	)
 
 	return tp, nil
+}
+
+var allowedOrigins = map[string]bool{
+	"http://localhost:8080": true,
+	"http://127.0.0.1:8080": true,
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if allowedOrigins[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+
+		if requestedHeaders := r.Header.Get("Access-Control-Request-Headers"); requestedHeaders != "" {
+			w.Header().Set("Access-Control-Allow-Headers", requestedHeaders)
+		} else {
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept")
+		}
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

@@ -1,0 +1,650 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a Config Service API.",
+        "title": "Config Service API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8000",
+    "paths": {
+        "/configs": {
+            "get": {
+                "description": "Dobavlja sve konfiguracije u sistemu.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "GET all configs",
+                "responses": {
+                    "200": {
+                        "description": "Sve konfiguracije",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Config"
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            }
+        },
+        "/configs/{name}": {
+            "get": {
+                "description": "Vraća sve verzije jedne konfiguracije.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "GET config by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sve verzije jedne konfiguracije",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Config"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Config not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            }
+        },
+        "/configs/{name}/{version}": {
+            "get": {
+                "description": "Vraća konfiguraciju sa tim {name} i tim {version}.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "GET config by name and version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Config version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Konfiguracija",
+                        "schema": {
+                            "$ref": "#/definitions/model.Config"
+                        }
+                    },
+                    "404": {
+                        "description": "Config not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            },
+            "put": {
+                "description": "Menja konfiguraciju pod tim nazivom i verzijom",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "PUT edit config",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Config version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Config parameters",
+                        "name": "configParams",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Konfiguracija je izmenjena"
+                    },
+                    "404": {
+                        "description": "Config not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            },
+            "post": {
+                "description": "Kreira konfiguraciju sa zadatim nazivom i verzijom.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "POST add config",
+                "parameters": [
+                    {
+                        "description": "Config parameters",
+                        "name": "configParams",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Config version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Konfiguracija je kreirana"
+                    },
+                    "409": {
+                        "description": "Konfiguracija sa tim nazivom i verzijom već postoji"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Briše konfiguraciju sa tim {name} i tim {version}.",
+                "tags": [
+                    "configs"
+                ],
+                "summary": "DELETE config by name and version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Config name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Config version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Konfiguracija je obrisana"
+                    },
+                    "404": {
+                        "description": "Config not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            }
+        },
+        "/configsGroup": {
+            "get": {
+                "description": "Dobavlja sve grupe u sistemu sa njihovim konfiguracijama.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "GET all groups",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.ConfigGroup"
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            }
+        },
+        "/configsGroup/{name}/{version}": {
+            "get": {
+                "description": "Vraća grupu sa tim {name} i tim {version}.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "GET group by name and version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ConfigGroup"
+                        }
+                    },
+                    "404": {
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            },
+            "put": {
+                "description": "Dodaje postojeću konfiguraciju sa tim nazivom i verzijom u grupu sa svojim nazivom i verzijom",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "PUT add config to group",
+                "parameters": [
+                    {
+                        "description": "Config with labels to be added to group",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Config"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Config successfully added to group"
+                    },
+                    "404": {
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            },
+            "post": {
+                "description": "Kreira novu grupu sa tim nazivom i tom verzijom.",
+                "tags": [
+                    "groups"
+                ],
+                "summary": "POST add group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Just name and version",
+                        "name": "configs",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Config"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Grupa je kreirana"
+                    },
+                    "409": {
+                        "description": "Grupa sa tim nazivom i verzijom već postoji"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Briše grupu sa tim {name} i tim {version}.",
+                "tags": [
+                    "groups"
+                ],
+                "summary": "DELETE group by name and version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Grupa je obrisana"
+                    },
+                    "404": {
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            }
+        },
+        "/configsGroup/{name}/{version}/{labels}": {
+            "get": {
+                "description": "Vraća sve konfiguracije u datoj grupi prema navedenim labelama.",
+                "tags": [
+                    "groups"
+                ],
+                "summary": "GET all configs in group by labels",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
+                        "name": "labels",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Konfiguracije u grupi koje odgovaraju labelama",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Config"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Briše sve konfiguracije u datoj grupi prema navedenim labelama.",
+                "tags": [
+                    "groups"
+                ],
+                "summary": "DELETE remove config from group by labels",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Key-value pairs of labels to filter configs, e.g. label1=value1\u0026label2=value2...",
+                        "name": "labels",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Group version",
+                        "name": "version",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Konfiguracije u grupi koje odgovaraju labelama su obrisane"
+                    },
+                    "404": {
+                        "description": "Group not found"
+                    },
+                    "429": {
+                        "description": "Previše zahteva, pokušajte kasnije"
+                    },
+                    "500": {
+                        "description": "Interna greška servera"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "model.Config": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ConfigGroup": {
+            "type": "object",
+            "properties": {
+                "configs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Config"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}
