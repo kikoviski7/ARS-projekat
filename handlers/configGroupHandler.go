@@ -34,6 +34,8 @@ func NewConfigGroupHandler(service services.ConfigGroupService) ConfigGroupHandl
 // @Tags groups
 // @Param name path string true "Group name"
 // @Param version path int true "Group version"
+// @Param Idempotency-Key header string true "Idempotency key for idempotent requests"
+// @Param configs body []model.Config true "Just name and version"
 // @Success 201 "Grupa je kreirana"
 // @Failure 409 "Grupa sa tim nazivom i verzijom već postoji"
 // @Failure 429 "Previše zahteva, pokušajte kasnije"
@@ -297,6 +299,7 @@ func (c ConfigGroupHandler) DeleteConfigByVersion(w http.ResponseWriter, r *http
 // @Param config body model.Config true "Config with labels to be added to group"
 // @Param name path string true "Group name"
 // @Param version path int true "Group version"
+// @Param Idempotency-Key header string true "Idempotency key for idempotent requests"
 // @Success 200 "Config successfully added to group"
 // @Failure 404 "Group not found"
 // @Failure 429 "Previše zahteva, pokušajte kasnije"

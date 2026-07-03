@@ -198,6 +198,11 @@ paths:
           additionalProperties:
             type: string
           type: object
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
       responses:
         "200":
           description: Konfiguracija je izmenjena
@@ -297,6 +302,19 @@ paths:
         name: version
         required: true
         type: integer
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Just name and version
+        in: body
+        name: configs
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.Config'
+          type: array
       responses:
         "201":
           description: Grupa je kreirana
@@ -331,6 +349,11 @@ paths:
         name: version
         required: true
         type: integer
+      - description: Idempotency key for idempotent requests
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
       responses:
         "200":
           description: Config successfully added to group
@@ -408,4 +431,6 @@ paths:
       summary: GET all configs in group by labels
       tags:
       - groups
+schemes:
+- http
 swagger: "2.0"

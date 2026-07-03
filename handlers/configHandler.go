@@ -287,6 +287,7 @@ func (c ConfigHandler) DeleteByVersion(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "Config name"
 // @Param version path int true "Config version"
 // @Param configParams body map[string]string false "Config parameters"
+// @Param Idempotency-Key header string true "Idempotency key for idempotent requests"
 // @Success 200 "Konfiguracija je izmenjena"
 // @Failure 404 "Config not found"
 // @Failure 429 "Previše zahteva, pokušajte kasnije"

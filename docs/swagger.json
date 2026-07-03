@@ -1,4 +1,7 @@
 {
+    "schemes": [
+        "http"
+    ],
     "swagger": "2.0",
     "info": {
         "description": "This is a Config Service API.",
@@ -156,6 +159,13 @@
                                 "type": "string"
                             }
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -374,6 +384,13 @@
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -411,6 +428,25 @@
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Just name and version",
+                        "name": "configs",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Config"
+                            }
+                        }
                     }
                 ],
                 "responses": {

@@ -163,6 +163,13 @@ const docTemplate = `{
                                 "type": "string"
                             }
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -381,6 +388,13 @@ const docTemplate = `{
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -418,6 +432,25 @@ const docTemplate = `{
                         "name": "version",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key for idempotent requests",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Just name and version",
+                        "name": "configs",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Config"
+                            }
+                        }
                     }
                 ],
                 "responses": {
@@ -625,7 +658,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8000",
 	BasePath:         "",
-	Schemes:          []string{},
+	Schemes:          []string{"http"},
 	Title:            "Config Service API",
 	Description:      "This is a Config Service API.",
 	InfoInstanceName: "swagger",
